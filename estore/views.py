@@ -1,4 +1,4 @@
-from lib2to3.fixes.fix_input import context
+#from lib2to3.fixes.fix_input import context
 
 from django.shortcuts import render
 
@@ -11,4 +11,4 @@ def home (request):
     context = {
         'products': products,
     }
-    return render(request, 'home.html')
+    return render(request, 'home.html', context)
