@@ -11,8 +11,10 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 """
 
 from pathlib import Path
+from django.contrib.messages import constants as messages
 
-from django.conf.global_settings import STATIC_ROOT, STATICFILES_DIRS, AUTH_USER_MODEL, MEDIA_URL, MEDIA_ROOT
+from django.conf.global_settings import STATIC_ROOT, STATICFILES_DIRS, AUTH_USER_MODEL, MEDIA_URL, MEDIA_ROOT, \
+    EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS
 from django.template.context_processors import media
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -70,6 +72,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'category.context_processors.menu_links',
+                'carts.context_processors.counter',
             ],
         },
     },
@@ -136,3 +139,21 @@ STATICFILES_DIRS = [
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR /'media'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+MESSAGE_TAGS = {
+    messages.ERROR: "danger",
+   }
+
+
+#SMTP configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_HOST_USER = 'eccom.web.site@gmail.com'
+EMAIL_HOST_PASSWORD = 'ccqf qgcn zekv ygdx'
+EMAIL_USE_TLS = True
+DEFAULT_FROM_EMAIL = 'eccom.web.site@gmail.com'
