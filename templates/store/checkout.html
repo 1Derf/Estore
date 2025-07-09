@@ -9,11 +9,10 @@
 <!-- ============================ COMPONENT 1 ================================= -->
 
 <div class="row">
-	<aside class="col-lg-6">
+	<aside class="col-lg-7"> {# Adjusted from col-lg-8 to col-lg-7 #}
 <div class="card">
     <div class="card-body">
         <h4 class="card-title mb-4">Billing Address</h4>
-        <!-- START OF THE BILLING ADDRESS FORM - NOW WITH AN ID -->
         <form id="billingForm" action="{% url 'checkout' %}" method="POST">
             {% csrf_token %}
             <div class="form-row">
@@ -71,88 +70,72 @@
 </div> <!-- card.// -->
 
 	</aside> <!-- col.// -->
-	<aside class="col-lg-6">
+	<aside class="col-lg-5"> {# Adjusted from col-lg-4 to col-lg-5  #}
 
 		<div class="card">
 		<div class="card-body">
-<table class="table table-borderless table-shopping-cart">
-<thead class="text-muted">
-<tr class="small text-uppercase">
-  <th scope="col">Product</th>
-  {# REMOVED width="110" #}
-  <th scope="col">Quantity</th>
-  {# REMOVED width="110" #}
-  <th scope="col">Price</th>
-  {# REMOVED width="150" #}
-  <th scope="col" class="text-right"> </th>
-</tr>
-</thead>
-<tbody>
+            {# NEW: Edit Cart Button - Moved to a more intuitive position #}
+            <a href="{% url 'cart' %}" class="btn btn-light btn-block">Edit Cart</a>
 
-{% for cart_item in cart_items %}
+            <table class="table table-borderless table-shopping-cart">
+            <thead class="text-muted">
+            <tr class="small text-uppercase">
+              <th scope="col">Product</th>
+              <th scope="col">Quantity</th>
+              <th scope="col">Price</th>
+              <th scope="col" class="text-right"> </th>
+            </tr>
+            </thead>
+            <tbody>
 
-<tr>
-	<td>
-		<figure class="itemside align-items-center">
-			<div class="aside"><img src="{{ cart_item.product.images.url }}" class="img-sm"></div>
-			<figcaption class="info">
-				<a href="{{ cart_item.product.get_url }}" class="title text-dark">{{ cart_item.product.product_name }}</a>
-				<p class="text-muted small">
-					{% if cart_item.variations.all %}
-						{% for item in cart_item.variations.all %}
-							{{ item.variation_category | capfirst }} : {{ item.variation_value | capfirst }}<br>
-						{% endfor %}
-					{% endif %}
-				</p>
-			</figcaption>
-		</figure>
-	</td>
-	<td>
-		{# This section is already clean from our last iteration #}
-		<div class="input-group input-spinner">
-    <div class="input-group-prepend">
-        <a href="{% url 'remove_cart' product_id=cart_item.product.id cart_item_id=cart_item.id %}" class="btn btn-light" type="button" id="button-minus">
-    <i class="fa fa-minus"></i>
-</a>
-    </div>
-    <input type="text" class="form-control" value="{{ cart_item.quantity }}" readonly>
-    <div class="input-group-append">
-        <form action="{% url 'add_cart' product_id=cart_item.product.id %}" method="POST">
-            {% csrf_token %}
-            {% for item in cart_item.variations.all %}
-                <input type="hidden" name="{{ item.variation_category | lower }}" value="{{ item.variation_value | capfirst }}">
+            {% for cart_item in cart_items %}
+
+            <tr id="cart-item-{{ cart_item.id }}">
+                <td>
+                    <figure class="itemside align-items-center">
+                        <div class="aside"><img src="{{ cart_item.product.images.url }}" class="img-sm"></div>
+                        <figcaption class="info">
+                            <a href="{{ cart_item.product.get_url }}" class="title text-dark">{{ cart_item.product.product_name }}</a>
+                            <p class="text-muted small">
+                                {% if cart_item.variations.all %}
+                                    {% for item in cart_item.variations.all %}
+                                        {{ item.variation_category | capfirst }} : {{ item.variation_value | capfirst }}<br>
+                                    {% endfor %}
+                                {% endif %}
+                            </p>
+                        </figcaption>
+                    </figure>
+                </td>
+                <td>
+                    {# STATIC QUANTITY DISPLAY - NO BUTTONS #}
+                    <div class="text-center">
+                        <span class="b text-muted">{{ cart_item.quantity }}</span>
+                    </div>
+                </td>
+                <td>
+                    <div class="price-wrap">
+                        <var class="price item-subtotal" id="item-subtotal-{{ cart_item.id }}">$ {{ cart_item.sub_total }}</var>
+                        <small class="text-muted">$ {{ cart_item.product.price }} each </small>
+                    </div> <!-- price-wrap .// -->
+                </td>
+
+            </tr>
+
             {% endfor %}
-               <button class="btn btn-light" type="submit" id="button-plus">
-                <i class="fa fa-plus"></i>
-            </button>
-        </form>
-    </div>
-</div> <!-- input-group.// -->
-	</td>
-	<td>
-		<div class="price-wrap">
-			<var class="price">$ {{ cart_item.sub_total }}</var>
-			<small class="text-muted">$ {{ cart_item.product.price }} each </small>
-		</div> <!-- price-wrap .// -->
-	</td>
 
-</tr>
-
-{% endfor %}
-
-</tbody>
-</table>
+            </tbody>
+            </table>
             <dl class="dlist-align">
               <dt>Total price:</dt>
-              <dd class="text-right">${{ total }}</dd>
+              <dd class="text-right" id="cart-total">${{ total }}</dd>
             </dl>
             <dl class="dlist-align">
               <dt>Tax:</dt>
-              <dd class="text-right"> ${{ tax }}</dd>
+              <dd class="text-right" id="cart-tax"> ${{ tax }}</dd>
             </dl>
             <dl class="dlist-align">
               <dt>Grand Total:</dt>
-              <dd class="text-right text-dark b"><strong>${{ grand_total }}</strong></dd>
+              <dd class="text-right text-dark b" id="cart-grand-total"><strong>${{ grand_total }}</strong></dd>
             </dl>
             <hr>
             <p class="text-center mb-3">
@@ -175,3 +158,7 @@
 <!-- ========================= SECTION CONTENT END// ========================= -->
 
 {% endblock %}
+
+{% block scripts %}
+{# All AJAX JavaScript for quantity adjustments has been removed from checkout.html #}
+{% endblock scripts %}
