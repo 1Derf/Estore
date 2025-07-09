@@ -9,7 +9,7 @@
 <!-- ============================ COMPONENT 1 ================================= -->
 
 <div class="row">
-	<aside class="col-lg-7"> {# Adjusted from col-lg-8 to col-lg-7 #}
+	<aside class="col-lg-6"> {# Billing address now takes 6 out of 12 columns for balanced layout #}
 <div class="card">
     <div class="card-body">
         <h4 class="card-title mb-4">Billing Address</h4>
@@ -48,7 +48,7 @@
              </div>
              <div class="form-row">
                 <div class="col form-group">
-                    <label for="">City</S>
+                    <label for="">City</label> {# Corrected typo from City</S> #}
                     <input type="text" name="city" class="form-control" required>
                 </div>
                 <div class="col form-group">
@@ -70,12 +70,12 @@
 </div> <!-- card.// -->
 
 	</aside> <!-- col.// -->
-	<aside class="col-lg-5"> {# Adjusted from col-lg-4 to col-lg-5  #}
+	<aside class="col-lg-6"> {# Cart summary now takes 6 out of 12 columns for balanced layout and price column space #}
 
 		<div class="card">
 		<div class="card-body">
-            {# NEW: Edit Cart Button - Moved to a more intuitive position #}
-            <a href="{% url 'cart' %}" class="btn btn-light btn-block">Edit Cart</a>
+            {# NEW: Edit Cart Button - Moved to a more intuitive position and styled to draw less attention #}
+            <a href="{% url 'cart' %}" class="btn btn-light btn-block mb-3">Edit Cart</a> {# Changed to btn-light for white #}
 
             <table class="table table-borderless table-shopping-cart">
             <thead class="text-muted">
@@ -141,7 +141,7 @@
             <p class="text-center mb-3">
                 <img src="{% static './images/misc/payments.png' %}" height="26">
             </p>
-            <!-- PLACE ORDER BUTTON - MOVED TO DESIRED LOCATION -->
+            <!-- PLACE ORDER BUTTON - This is the primary call to action -->
             <button type="submit" form="billingForm" name="submit" class="btn btn-primary btn-block">Place Order</button>
             <a href="{% url 'store' %}" class="btn btn-light btn-block">Continue Shopping</a>
 		</div> <!-- card-body.// -->
@@ -161,4 +161,5 @@
 
 {% block scripts %}
 {# All AJAX JavaScript for quantity adjustments has been removed from checkout.html #}
+{# This page is now purely for displaying order summary and collecting billing details. #}
 {% endblock scripts %}
