@@ -10,10 +10,11 @@ def configure_paypal():
         "client_secret": "EEE9gqD2GkRi0cjKDQ-f9g9RsCNuGOdcXoH-y8xZoqOZ8S3M1eSITQzHgaawUJ2_yzQO5Tncw1uNmscR"  # Replace with actual
     })
 
-def create_paypal_payment(order_id, total_amount, currency='USD'):
-    configure_paypal()  # Ensure config is loaded
 
-    payment = Payment({
+def create_paypal_payment(order_id, total_amount, currency='USD'):
+    configure_paypal()
+
+    payment = paypalrestsdk.Payment({
         "intent": "sale",
         "payer": {
             "payment_method": "paypal"
@@ -25,8 +26,8 @@ def create_paypal_payment(order_id, total_amount, currency='USD'):
         "transactions": [{
             "item_list": {
                 "items": [{
-                    "name": "Order " + str(order_id),  # Customize as needed
-                    "sku": "item",
+                    "name": "Order " + str(order_id),
+                    "sku": "order_" + str(order_id),
                     "price": str(total_amount),
                     "currency": currency,
                     "quantity": 1
@@ -41,6 +42,19 @@ def create_paypal_payment(order_id, total_amount, currency='USD'):
     })
 
     if payment.create():
+        return payment
+    else:
+        raise Exception(payment.error)
+
+
+# ... Your existing configure_paypal and create_paypal_payment functions ...
+
+def execute_paypal_payment(payment_id, payer_id):
+    configure_paypal()
+
+    payment = paypalrestsdk.Payment.find(payment_id)
+
+    if payment.execute({"payer_id": payer_id}):
         return payment
     else:
         raise Exception(payment.error)
