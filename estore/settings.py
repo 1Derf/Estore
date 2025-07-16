@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'accounts',
     'store',
     'carts',
+    'orders',
 ]
 
 MIDDLEWARE = [
@@ -157,3 +158,13 @@ EMAIL_HOST_USER = 'eccom.web.site@gmail.com'
 EMAIL_HOST_PASSWORD = 'ccqf qgcn zekv ygdx'
 EMAIL_USE_TLS = True
 DEFAULT_FROM_EMAIL = 'eccom.web.site@gmail.com'
+
+
+# PayPal Settings
+PAYPAL_API_MODE = 'sandbox'  # Change to 'live' for production later
+PAYPAL_CLIENT_ID = 'AUZRzHs2tulbf2ZOHph-zEYVRQUthud4_Zib0o37H11a4cp0kjk-7154VW4mg327I1_20XIDqJiuMuDs'  # From PayPal Developer Dashboard
+PAYPAL_CLIENT_SECRET = 'EEE9gqD2GkRi0cjKDQ-f9g9RsCNuGOdcXoH-y8xZoqOZ8S3M1eSITQzHgaawUJ2_yzQO5Tncw1uNmscR'  # From PayPal Developer Dashboard
+
+# Optional: Your site's return/cancel URLs (we'll use these in later sections)
+PAYPAL_RETURN_URL = 'http://127.0.0.1:8000/orders/paypal-return/'  # Update to your actual domain/port
+PAYPAL_CANCEL_URL = 'http://127.0.0.1:8000/orders/paypal-cancel/'  # Update to your actual domain/port

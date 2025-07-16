@@ -13,7 +13,7 @@
 <div class="card">
     <div class="card-body">
         <h4 class="card-title mb-4">Billing Address</h4>
-        <form id="billingForm" action="{% url 'checkout' %}" method="POST">
+        <form id="billingForm" action="{% url 'place_order' %}" method="POST">
             {% csrf_token %}
             <div class="form-row">
                 <div class="col form-group">
@@ -141,8 +141,10 @@
             <p class="text-center mb-3">
                 <img src="{% static './images/misc/payments.png' %}" height="26">
             </p>
-            <!-- PLACE ORDER BUTTON - This is the primary call to action -->
-            <button type="submit" form="billingForm" name="submit" class="btn btn-primary btn-block">Place Order</button>
+            <!-- UPDATED: Payment Option Buttons (both submit the form and trigger the same PayPal flow) -->
+            <button type="submit" form="billingForm" name="submit" class="btn btn-primary btn-block mb-2">Pay with PayPal</button>
+            <button type="submit" form="billingForm" name="submit" class="btn btn-secondary btn-block mb-2">Credit Card with PayPal</button>
+            <p class="text-muted small text-center">You'll be redirected to PayPal to complete your payment securely (credit card option available as guest checkout).</p>
             <a href="{% url 'store' %}" class="btn btn-light btn-block">Continue Shopping</a>
 		</div> <!-- card-body.// -->
 		</div> <!-- card.// -->

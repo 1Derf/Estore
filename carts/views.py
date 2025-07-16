@@ -1,29 +1,5 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
-
-from accounts.views import login
-from store.models import Product, Variation
-from .models import CartItem, Cart
-from django.contrib.auth.decorators import login_required
-from carts.utils import _cart_id
-from django.db.models import Q
-
-# Create your views here.
-
-#def _cart_id(request):
-#    cart = request.session.session_key
-#    if not cart:
-#        cart = request.session.create()
-#    return cart
-
-
-
-
-
-# In carts/views.py
-
-from django.core.exceptions import ObjectDoesNotExist
-from django.shortcuts import render, redirect, get_object_or_404
 from store.models import Product, Variation
 from .models import CartItem, Cart
 from django.contrib.auth.decorators import login_required
