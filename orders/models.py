@@ -34,9 +34,10 @@ class Order(models.Model):
     email = models.EmailField(max_length=50)
     address_line_1 = models.CharField(max_length=50)
     address_line_2 = models.CharField(max_length=50, blank=True)
-    country = models.CharField(max_length=50)
-    state = models.CharField(max_length=50)
+    country = models.CharField(max_length=2, default='US')  # Store 2-letter code
+    state = models.CharField(max_length=2)
     city = models.CharField(max_length=50)
+    zip_code = models.CharField(max_length=10)
     order_note = models.CharField(max_length=100, blank=True)
     order_total = models.FloatField()
     tax = models.FloatField()
@@ -45,6 +46,17 @@ class Order(models.Model):
     is_ordered = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    # shipping fields
+    shipping_first_name = models.CharField(max_length=50, blank=True)
+    shipping_last_name = models.CharField(max_length=50, blank=True)
+    shipping_phone = models.CharField(max_length=15, blank=True)
+    shipping_email = models.EmailField(max_length=50, blank=True)
+    shipping_address_line_1 = models.CharField(max_length=50, blank=True)
+    shipping_address_line_2 = models.CharField(max_length=50, blank=True)
+    shipping_country = models.CharField(max_length=2, blank=True, default='US')
+    shipping_state = models.CharField(max_length=2, blank=True)
+    shipping_city = models.CharField(max_length=50, blank=True)
+    shipping_zip_code = models.CharField(max_length=20, blank=True)
 
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
@@ -76,6 +88,9 @@ class OrderProduct(models.Model):
     ordered = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def sub_total(self):
+        return self.product_price * self.quantity  # Simple multiplication; returns Decimal if prices are Decimal
 
     def __str__(self):
         return self.product.product_name

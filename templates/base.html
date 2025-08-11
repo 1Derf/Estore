@@ -32,17 +32,16 @@
     <script src="https://www.paypal.com/sdk/js?client-id=AUpHHMyPy0fEATKA2KUYTIyPNNCsV3imcFWQJ78ECKC55LT20dRv-nYH7GT2MjU5Rqj9tAK5ypu8hcDh&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo,paylater,card"
             data-sdk-integration-source="developer-studio"></script>
 
+    <!-- Removed: Empty/incomplete script block (was not doing anything useful) -->
+    <!-- <script type="text/javascript">
+    /// some script
 
-    <script type="text/javascript">
-/// some script
-
-// jquery ready start
-$(document).ready(function() {
-	// jQuery code
-
-});
-// jquery end
-</script>
+    // jquery ready start
+    $(document).ready(function() {
+        // jQuery code
+    });
+    // jquery end
+    </script> -->
 
 </head>
 <body>
@@ -55,3 +54,10 @@ $(document).ready(function() {
 
 <!-- footer -->
 {% include 'includes/footer.html' %}
+
+<!-- NEW: Placeholder for scripts from child templates (like checkout.html) -->
+{% block scripts %}
+{% endblock %}
+
+</body>
+</html>

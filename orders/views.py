@@ -63,7 +63,20 @@ def place_order(request):
             data.country = form.cleaned_data['country']
             data.state = form.cleaned_data['state']
             data.city = form.cleaned_data['city']
+            data.zip_code = form.cleaned_data['zip_code']
             data.order_note = form.cleaned_data['order_note']
+
+            #  Save shipping fields (mirroring billing)
+            data.shipping_first_name = form.cleaned_data['shipping_first_name']
+            data.shipping_last_name = form.cleaned_data['shipping_last_name']
+            data.shipping_phone = form.cleaned_data['shipping_phone']
+            data.shipping_email = form.cleaned_data['shipping_email']
+            data.shipping_address_line_1 = form.cleaned_data['shipping_address_line_1']
+            data.shipping_address_line_2 = form.cleaned_data['shipping_address_line_2']
+            data.shipping_country = form.cleaned_data['shipping_country']
+            data.shipping_state = form.cleaned_data['shipping_state']
+            data.shipping_city = form.cleaned_data['shipping_city']
+            data.shipping_zip_code = form.cleaned_data['shipping_zip_code']
 
             # Assign the calculated grand_total and tax
             data.order_total = grand_total
@@ -109,13 +122,13 @@ def place_order(request):
 
             # Initiate PayPal payment and redirect
             try:
-                payment = create_paypal_payment(order_number, float(grand_total))  # Convert Decimal to float for PayPal
+                payment = create_paypal_payment(data, float(grand_total),
+                                                request)  # UPDATED: Add request as third argument
                 for link in payment.links:
                     if link.rel == "approval_url":
                         return redirect(link.href)
                 return HttpResponse("Error: No approval URL found.")
             except Exception as e:
-                # Rollback on error (optional: delete the order to avoid orphans)
                 data.delete()
                 return HttpResponse("Payment creation failed: " + str(e))
         else:
@@ -146,30 +159,42 @@ def paypal_return(request):
 
         # Extract order_number from PayPal description (e.g., "Payment for Order 20231001123")
         order_number = payment_response.transactions[0].description.split()[-1]
-        order = Order.objects.get(order_number=order_number, is_ordered=False)
 
-        # Update Payment (use Decimal for amount_paid, set status)
-        order.payment.status = 'Completed'
-        order.payment.amount_paid = Decimal(payment_response.transactions[0].amount.total)
-        order.payment.payment_id = payment_response.id
-        order.payment.save()
+        try:
+            order = Order.objects.get(order_number=order_number, is_ordered=False)
+            # Proceed with updates if not yet ordered
+            order.payment.status = 'Completed'
+            order.payment.amount_paid = Decimal(payment_response.transactions[0].amount.total)
+            order.payment.payment_id = payment_response.id
+            order.payment.save()
 
-        # Update Order (set status and is_ordered)
-        order.status = 'Completed'  # Matches your STATUS choices
-        order.is_ordered = True
-        order.save()
+            order.status = 'Completed'
+            order.is_ordered = True
+            order.save()
 
-        # Clear the cart (only on success)
-        CartItem.objects.filter(user=request.user).delete()  # Assumes auth; add unauth if needed
+            # NEW: Update all OrderProducts with payment and ordered=True
+            for op in order.orderproduct_set.all():
+                op.payment = order.payment
+                op.ordered = True
+                op.save()
 
-        # Render success confirmation (reuse payments.html with your context)
+            # Clear the cart (only on success, if not already cleared)
+            CartItem.objects.filter(user=request.user).delete()
+        except Order.DoesNotExist:
+            # If already ordered (e.g., page reload), just fetch the completed order
+            order = Order.objects.get(order_number=order_number, is_ordered=True)
+
+        # Fetch ordered products and calculate total
+        ordered_products = OrderProduct.objects.filter(order=order)
+        total = sum(Decimal(str(item.product_price)) * item.quantity for item in ordered_products)
+
         context = {
             'order': order,
-            'cart_items': [],  # Empty since cleared
-            'total': 0,
+            'ordered_products': ordered_products,
+            'total': total,
             'tax': order.tax,
             'grand_total': order.order_total,
-            'payment': order.payment,  # Pass for display (e.g., payment_id)
+            'payment': order.payment,
         }
         return render(request, 'orders/payments.html', context)
 
