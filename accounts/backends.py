@@ -10,7 +10,7 @@ class CustomModelBackend(ModelBackend):
             case_insensitive_username_field = '{}__iexact'.format(UserModel.USERNAME_FIELD)
             user = UserModel._default_manager.get(**{case_insensitive_username_field: username})
         except UserModel.DoesNotExist:
-            UserModel().set_password(password)  # Dummy check to prevent timing attacks
+            UserModel().set_password(password)  # Dummy check for timing attacks
             return None
         else:
             if user.check_password(password) and self.user_can_authenticate(user):

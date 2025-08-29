@@ -10,7 +10,8 @@ from .views import test_paypal, paypal_payment  # Adjust import
 
 
 urlpatterns = ([
-    path('admin/', admin.site.urls),
+    path('admin/', include('admin_honeypot.urls', namespace='admin_honeypot')),
+    path('securelogin/', admin.site.urls),
     path('', views.home, name='home'),
     path('store/', include('store.urls')),
     path('cart/', include('carts.urls')),
@@ -23,3 +24,8 @@ urlpatterns = ([
 
 ]
    + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT))
+
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

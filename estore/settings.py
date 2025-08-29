@@ -12,11 +12,12 @@ https://docs.djangoproject.com/en/3.1/ref/settings/
 
 from pathlib import Path
 from django.contrib.messages import constants as messages
+from decouple import config
 
 from django.conf.global_settings import STATIC_ROOT, STATICFILES_DIRS, AUTH_USER_MODEL, MEDIA_URL, MEDIA_ROOT, \
     EMAIL_PORT, EMAIL_HOST_USER, EMAIL_HOST_PASSWORD, EMAIL_USE_TLS
 from django.template.context_processors import media
-
+from decouple import config
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -25,10 +26,10 @@ BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 # See https://docs.djangoproject.com/en/3.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'xotxj2qc$&poj-66@coy3^p=5ydi^3@w_1k62)-sqivgh2df&2'
+SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 ALLOWED_HOSTS = []
 
@@ -47,17 +48,29 @@ INSTALLED_APPS = [
     'store',
     'carts',
     'orders',
+    'admin_honeypot',
+    'axes',
+    'import_export',
+    'admin_thumbnails',
+
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'axes.middleware.AxesMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'accounts.middleware.BlockIPMiddleware',
+    'django_session_timeout.middleware.SessionTimeoutMiddleware',
 ]
+
+SESSION_EXPIRE_SECONDS = 3600  # 1 hour
+SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
+SESSION_TIMEOUT_REDIRECT = 'accounts/login'
 
 ROOT_URLCONF = 'estore.urls'
 
@@ -149,15 +162,21 @@ MESSAGE_TAGS = {
     messages.ERROR: "danger",
    }
 
+AUTHENTICATION_BACKENDS = [
+    'axes.backends.AxesStandaloneBackend',  # Axes first
+    'accounts.backends.CustomModelBackend',
+
+]
+
 
 #SMTP configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-EMAIL_HOST = 'smtp.gmail.com'
-EMAIL_PORT = 587
-EMAIL_HOST_USER = 'eccom.web.site@gmail.com'
-EMAIL_HOST_PASSWORD = 'ccqf qgcn zekv ygdx'
-EMAIL_USE_TLS = True
-DEFAULT_FROM_EMAIL = 'eccom.web.site@gmail.com'
+EMAIL_BACKEND = config('EMAIL_BACKEND')
+EMAIL_HOST = config('EMAIL_HOST')
+EMAIL_PORT = config('EMAIL_PORT', cast=int)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
+EMAIL_USE_TLS = config('EMAIL_USE_TLS', cast=bool)
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL')
 
 
 # PayPal Settings
@@ -168,3 +187,10 @@ PAYPAL_CLIENT_SECRET = 'EEE9gqD2GkRi0cjKDQ-f9g9RsCNuGOdcXoH-y8xZoqOZ8S3M1eSITQzH
 # Optional: Your site's return/cancel URLs (we'll use these in later sections)
 PAYPAL_RETURN_URL = 'http://127.0.0.1:8000/orders/paypal-return/'  # Update to your actual domain/port
 PAYPAL_CANCEL_URL = 'http://127.0.0.1:8000/orders/paypal-cancel/'  # Update to your actual domain/port
+
+
+AXES_FAILURE_LIMIT = 3  # Block after 5 fails
+AXES_COOLOFF_TIME = 0.25  # Block for 15 minutes
+AXES_RESET_ON_SUCCESS = True
+AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html'  # Optional (create this template for a custom blocked page)
+AXES_ONLY_ADMIN_SITE = False  # Block on all logins (set to True for admin-only)

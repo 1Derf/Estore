@@ -92,7 +92,7 @@
                             </td>
                             <td class="text-right">  {# Right-aligned price column #}
                                 <div class="price-wrap">
-                                    <var class="price item-subtotal" id="item-subtotal-{{ item.id }}">$ {{ item.sub_total|floatformat:2 }}</var>  {# FIXED: Strong subtotal (price * quantity) #}
+                                    <var class="price item-subtotal" id="item-subtotal-{{ item.id }}">$ {{ item.sub_total|floatformat:2 }}</var>  {# Strong subtotal (price * quantity) #}
                                     <small class="text-muted">$ {{ item.product_price|floatformat:2 }} each </small>  {# Muted unit price (future: retail) #}
                                 </div> <!-- price-wrap .// -->
                             </td>
@@ -107,15 +107,15 @@
                 <div class="totals-box" style="float: right; text-align: right; width: 30%; margin-top: 20px;">  {# Float right, width to match price column, margin for spacing #}
                     <dl class="dlist-align">
                         <dt>Total price:</dt>
-                        <dd>${{ total }}</dd>
+                        <dd>${{ total|floatformat:2 }}</dd>  {# UPDATED: Added |floatformat:2 #}
                     </dl>
                     <dl class="dlist-align">
                         <dt>Tax:</dt>
-                        <dd>${{ tax }}</dd>
+                        <dd>${{ tax|floatformat:2 }}</dd>  {# UPDATED: Added |floatformat:2 #}
                     </dl>
                     <dl class="dlist-align">
                         <dt>Grand Total:</dt>
-                        <dd class="text-dark b"><strong>${{ grand_total }}</strong></dd>
+                        <dd class="text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>  {# UPDATED: Added |floatformat:2 #}
                     </dl>
                 </div>
                 <!-- Clear float to prevent layout issues -->

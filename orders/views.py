@@ -9,7 +9,8 @@ import datetime
 from decimal import Decimal
 from carts.utils import _cart_id  # Import for unauth handling (adjust if needed)
 from .paypal_utils import create_paypal_payment, execute_paypal_payment  # Import from same app (orders)
-
+from django.core.mail import EmailMessage
+from django.template.loader import render_to_string
 # Create your views here.
 
 def payments(request):
@@ -41,12 +42,14 @@ def place_order(request):
     grand_total = Decimal('0.00')
 
     for cart_item in cart_items:
-        total += (Decimal(str(cart_item.product.price)) * cart_item.quantity)
+        total += (cart_item.product.price * Decimal(cart_item.quantity))  # Use Decimal for quantity
         quantity += cart_item.quantity
 
     # Calculate tax and grand total
-    tax = (Decimal('2.00') * total) / Decimal('100.00')  # 2% tax
+    tax = (Decimal('2') * total) / Decimal('100')  # 2% tax; Use Decimal
+    tax = tax.quantize(Decimal('0.01'))  # Round to 2 decimals
     grand_total = total + tax
+    grand_total = grand_total.quantize(Decimal('0.01'))  # Round to 2 decimals
 
     if request.method == 'POST':
         form = OrderForm(request.POST)
@@ -66,7 +69,7 @@ def place_order(request):
             data.zip_code = form.cleaned_data['zip_code']
             data.order_note = form.cleaned_data['order_note']
 
-            #  Save shipping fields (mirroring billing)
+            # Save shipping fields (mirroring billing)
             data.shipping_first_name = form.cleaned_data['shipping_first_name']
             data.shipping_last_name = form.cleaned_data['shipping_last_name']
             data.shipping_phone = form.cleaned_data['shipping_phone']
@@ -122,8 +125,8 @@ def place_order(request):
 
             # Initiate PayPal payment and redirect
             try:
-                payment = create_paypal_payment(data, float(grand_total),
-                                                request)  # UPDATED: Add request as third argument
+                amount_str = str(grand_total)  # Pass as string (e.g., "97.91")
+                payment = create_paypal_payment(data, amount_str, request)  # Use amount_str
                 for link in payment.links:
                     if link.rel == "approval_url":
                         return redirect(link.href)
@@ -146,6 +149,8 @@ def place_order(request):
         }
         return render(request, 'store/checkout.html', context)
 
+    # NOTE: This email send seems misplaced (references undefined 'order'); moved to paypal_return in prior updates
+
 
 def paypal_return(request):
     payment_id = request.GET.get('paymentId')
@@ -164,7 +169,9 @@ def paypal_return(request):
             order = Order.objects.get(order_number=order_number, is_ordered=False)
             # Proceed with updates if not yet ordered
             order.payment.status = 'Completed'
-            order.payment.amount_paid = Decimal(payment_response.transactions[0].amount.total)
+            # UPDATED: Safely convert PayPal's amount (assuming it's str or float) to Decimal
+            paypal_amount = payment_response.transactions[0].amount.total
+            order.payment.amount_paid = Decimal(str(paypal_amount)).quantize(Decimal('0.01'))  # Use str() for safe conversion
             order.payment.payment_id = payment_response.id
             order.payment.save()
 
@@ -180,13 +187,35 @@ def paypal_return(request):
 
             # Clear the cart (only on success, if not already cleared)
             CartItem.objects.filter(user=request.user).delete()
+
+            # Fetch ordered products and calculate total (moved here for email)
+            ordered_products = OrderProduct.objects.filter(order=order)
+            # UPDATED: Ensure Decimal multiplication by casting both to Decimal via str() for safety
+            total = sum(Decimal(str(op.product_price)) * Decimal(str(op.quantity)) for op in ordered_products)
+
+            # Send order received email to customer (only on first completion)
+            mail_subject = 'Thank you for your order!'
+            message = render_to_string('orders/order_recieved_email.html', {
+                'user': request.user,
+                'order': order,
+                'ordered_products': ordered_products,
+                'total': total,
+                'tax': order.tax,
+                'grand_total': order.order_total,
+            })
+            to_email = order.email  # Use order.email to handle unauthenticated users
+            send_email = EmailMessage(mail_subject, message, to=[to_email])
+            send_email.content_subtype = 'html'  # Ensures it's sent as HTML
+            send_email.send()
+
         except Order.DoesNotExist:
             # If already ordered (e.g., page reload), just fetch the completed order
             order = Order.objects.get(order_number=order_number, is_ordered=True)
 
-        # Fetch ordered products and calculate total
-        ordered_products = OrderProduct.objects.filter(order=order)
-        total = sum(Decimal(str(item.product_price)) * item.quantity for item in ordered_products)
+            # Fetch ordered products and calculate total (for context only)
+            ordered_products = OrderProduct.objects.filter(order=order)
+            # UPDATED: Same safe Decimal calculation
+            total = sum(Decimal(str(op.product_price)) * Decimal(str(op.quantity)) for op in ordered_products)
 
         context = {
             'order': order,

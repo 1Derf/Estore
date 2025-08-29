@@ -73,8 +73,8 @@
 	</td>
 	<td>
 		<div class="price-wrap">
-			<var class="price">$ {{ cart_item.sub_total }}</var>
-			<small class="text-muted">$ {{ cart_item.product.price }} each </small>
+			<var class="price">$ {{ cart_item.sub_total|floatformat:2 }}</var>  {# UPDATED: Added |floatformat:2 #}
+			<small class="text-muted">$ {{ cart_item.product.price|floatformat:2 }} each </small>  {# UPDATED: Added |floatformat:2 #}
 		</div> <!-- price-wrap .// -->
 	</td>
 	<td class="text-right">
@@ -96,15 +96,15 @@
 		<div class="card-body">
 			<dl class="dlist-align">
 			  <dt>Total price:</dt>
-			  <dd class="text-right">${{ total }}</dd>
+			  <dd class="text-right">${{ total|floatformat:2 }}</dd>  {# UPDATED: Added |floatformat:2 #}
 			</dl>
 			<dl class="dlist-align">
 			  <dt>Tax:</dt>
-			  <dd class="text-right"> ${{ tax }}</dd>
+			  <dd class="text-right"> ${{ tax|floatformat:2 }}</dd>  {# UPDATED: Added |floatformat:2 #}
 			</dl>
 			<dl class="dlist-align">
 			  <dt>Grand Total:</dt>
-			  <dd class="text-right text-dark b"><strong>${{ grand_total }}</strong></dd>
+			  <dd class="text-right text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>  {# UPDATED: Added |floatformat:2 #}
 			</dl>
 			<hr>
 			<p class="text-center mb-3">

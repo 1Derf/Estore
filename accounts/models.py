@@ -1,7 +1,11 @@
 #from multiprocessing.managers import Value
 
 from django.db import models
-from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib.auth.models import AbstractUser, BaseUserManager, User
+from django.db.models import CASCADE
+from django.conf import settings
+
+
 
 # Create your models here.
 
@@ -61,6 +65,9 @@ class Account(AbstractUser):
 
     objects = MyAccountManager()
 
+    def full_name(self):
+        return f'{self.first_name} {self.last_name}'
+
     def __str__(self):
         return self.email
 
@@ -70,5 +77,32 @@ class Account(AbstractUser):
     def has_module_perms(self, add_label):
         return True
 
+
+
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    address_line_1 = models.CharField(blank=True, max_length=100)
+    address_line_2 = models.CharField(blank=True, max_length=100)
+    profile_picture = models.ImageField(blank=True, null=True, upload_to='userprofile')
+    city = models.CharField(blank=True, max_length=20)
+    zip_code = models.CharField(blank=True, max_length=20)
+    state = models.CharField(blank=True, max_length=20)
+    country = models.CharField(blank=True, max_length=20)
+
+    def __str__(self):
+        return self.user.first_name
+
+    def full_address(self):
+        return f'{self.address_line1} {self.address_line_2}'
+
+
+class BlockedIP(models.Model):
+    ip_address = models.GenericIPAddressField(unique=True)
+    reason = models.CharField(max_length=255, blank=True)
+    blocked_at = models.DateTimeField(auto_now_add=True)
+    is_blocked = models.BooleanField(default=True)  # For easy toggle (unblock by setting to False)
+
+    def __str__(self):
+        return f"{self.ip_address} ({'Blocked' if self.is_blocked else 'Unblocked'})"
 
 
