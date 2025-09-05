@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import Account, UserProfile, BlockedIP
+from .models import Account, UserProfile
 from django.db import models
 # Register your models here.
 
@@ -32,18 +32,6 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 admin.site.register(Account, AccountAdmin)
 admin.site.register(UserProfile, UserProfileAdmin)
-
-@admin.register(BlockedIP)
-class BlockedIPAdmin(admin.ModelAdmin):
-    list_display = ('ip_address', 'reason', 'blocked_at', 'is_blocked')
-    search_fields = ('ip_address',)
-    list_filter = ('is_blocked',)
-    actions = ['unblock_ips']
-
-    def unblock_ips(self, request, queryset):
-        queryset.update(is_blocked=False)
-        self.message_user(request, "Selected IPs have been unblocked.")
-    unblock_ips.short_description = "Unblock selected IPs"
 
 
 from axes.admin import AccessLogAdmin as BaseAccessLogAdmin

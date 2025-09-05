@@ -2,64 +2,204 @@
 <!DOCTYPE HTML>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta http-equiv="pragma" content="no-cache" />
-<meta http-equiv="cache-control" content="max-age=604800" />
-<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-
-<title>Ecom | ecommerce store</title>
-
-<link href="{% static 'images/favicon.ico' %}" rel="shortcut icon" type="image/x-icon">
-
-<!-- jQuery -->
-<script src="{% static 'js/jquery-2.0.0.min.js' %}" type="text/javascript"></script>
-
-<!-- Bootstrap4 files-->
-<script src="{% static 'js/bootstrap.bundle.min.js' %}" type="text/javascript"></script>
-<link href="{% static 'css/bootstrap.css' %}" rel="stylesheet" type="text/css"/>
-
-<!-- Font awesome 5 -->
-<link href="{% static 'fonts/fontawesome/css/all.min.css' %}" type="text/css" rel="stylesheet">
-
-<!-- custom style -->
-<link href="{% static 'css/ui.css' %}" rel="stylesheet" type="text/css"/>
-<link href="{% static 'css/responsive.css' %}" rel="stylesheet" media="only screen and (max-width: 1200px)" />
-
-<link href="{% static 'css/custom.css' %}" rel="stylesheet" type="text/css"/>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<!-- custom javascript -->
-<script src="{% static 'js/script.js' %}" type="text/javascript"></script>
-
+    <meta charset="utf-8">
+    <meta http-equiv="pragma" content="no-cache" />
+    <meta http-equiv="cache-control" content="max-age=604800" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Ecom | ecommerce store</title>
+    <link href="{% static 'images/favicon.ico' %}" rel="shortcut icon" type="image/x-icon">
+    <!-- jQuery -->
+    <script src="{% static 'js/jquery-2.0.0.min.js' %}" type="text/javascript"></script>
+    <!-- Bootstrap4 files-->
+    <script src="{% static 'js/bootstrap.bundle.min.js' %}" type="text/javascript"></script>
+    <link href="{% static 'css/bootstrap.css' %}" rel="stylesheet" type="text/css"/>
+    <!-- Font awesome 5 -->
+    <link href="{% static 'fonts/fontawesome/css/all.min.css' %}" type="text/css" rel="stylesheet">
+    <!-- custom style -->
+    <link href="{% static 'css/ui.css' %}" rel="stylesheet" type="text/css"/>
+    <link href="{% static 'css/responsive.css' %}" rel="stylesheet" media="only screen and (max-width: 1200px)" />
+    <link href="{% static 'css/custom.css' %}" rel="stylesheet" type="text/css"/>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <!-- custom javascript -->
+    <script src="{% static 'js/script.js' %}" type="text/javascript"></script>
     <!-- PayPal Script -->
-    <script src="https://www.paypal.com/sdk/js?client-id=AUpHHMyPy0fEATKA2KUYTIyPNNCsV3imcFWQJ78ECKC55LT20dRv-nYH7GT2MjU5Rqj9tAK5ypu8hcDh&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo,paylater,card"
-            data-sdk-integration-source="developer-studio"></script>
-
-    <!-- Removed: Empty/incomplete script block (was not doing anything useful) -->
-    <!-- <script type="text/javascript">
-    /// some script
-
-    // jquery ready start
-    $(document).ready(function() {
-        // jQuery code
-    });
-    // jquery end
-    </script> -->
-
+    <script src="https://www.paypal.com/sdk/js?client-id=AUpHHMyPy0fEATKA2KUYTIyPNNCsV3imcFWQJ78ECKC55LT20dRv-nYH7GT2MjU5Rqj9tAK5ypu8hcDh&buyer-country=US&currency=USD&components=buttons&enable-funding=venmo,paylater,card" data-sdk-integration-source="developer-studio"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- UPDATED: Styles for sticky full header -->
+    <style>
+        .main-header {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            background-color: inherit;
+        }
+        .main-header.stuck {
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        body {
+            padding-top: 0;
+        }
+        #recently-viewed-widget img:hover {
+            transform: scale(1.1);
+            border-color: #007bff;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+        }
+        .recent-popup {
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .recent-popup strong {
+            font-size: 14px;
+        }
+        .recent-popup span {
+            font-size: 12px;
+            color: #007bff;
+        }
+        .add-to-cart-btn {
+            width: 100%;
+            font-size: 12px;
+        }
+        @media (max-width: 768px) {
+            #recently-viewed-widget {
+                display: none;
+            }
+        }
+    </style>
 </head>
 <body>
-
-<!-- navbar -->
-{% include 'includes/navbar.html' %}
-{% block content %}
-<!-- content -->
-{% endblock %}
-
-<!-- footer -->
-{% include 'includes/footer.html' %}
-
-<!-- NEW: Placeholder for scripts from child templates (like checkout.html) -->
-{% block scripts %}
-{% endblock %}
-
+    <header class="main-header">
+        {% include 'includes/navbar.html' %}
+    </header>
+    {% block content %}
+        <!-- content -->
+    {% endblock %}
+    {% if recently_viewed %}
+        <div id="recently-viewed-widget" style="position: fixed; right: 20px; top: 150px; width: 100px; background: white; border: 1px solid #ddd; padding: 10px; z-index: 999; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <h5 style="text-align: center; font-size: 14px; margin-bottom: 10px;">Recently Viewed</h5>
+            <ul style="list-style: none; padding: 0; margin: 0;">
+                {% for product in recently_viewed %}
+                    <li style="margin-bottom: 10px; text-align: center; position: relative;" data-product-id="{{ product.id }}" data-product-name="{{ product.product_name }}" data-product-price="{{ product.price }}" data-product-url="{{ product.get_url }}" data-has-variants="{{ product.has_variants|yesno:'true,false' }}">
+                        <a href="{{ product.get_url }}" style="display: block;">
+                            <img src="{{ product.images.url }}" alt="{{ product.product_name }}" style="width: 80px; height: auto; border: 1px solid #eee; transition: all 0.3s ease; cursor: pointer;">
+                        </a>
+                        <div class="recent-popup" style="display: none; position: absolute; left: -200px; top: -10px; width: 180px; background: white; border: 1px solid #ddd; padding: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); z-index: 1000; transition: opacity 0.3s ease;">
+                            <a href="{{ product.get_url }}" style="text-decoration: none; color: inherit; display: block;">
+                                <strong>{{ product.product_name }}</strong><br>
+                                <span>${{ product.price|floatformat:2 }}</span>
+                            </a>
+                            <button class="add-to-cart-btn btn btn-primary btn-sm mt-2" style="width: 100%;">Add to Cart</button>
+                        </div>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    {% include 'includes/footer.html' %}
+    {% block scripts %}
+        <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const header = document.querySelector('.main-header');
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (!entry.isIntersecting) {
+                        header.classList.add('stuck');
+                    } else {
+                        header.classList.remove('stuck');
+                    }
+                });
+            }, { threshold: [0] });
+            observer.observe(header);
+            const widget = document.getElementById('recently-viewed-widget');
+            if (widget) {
+                const headerHeight = header.offsetHeight;
+                widget.style.top = `${headerHeight + 20}px`;
+                let widgetTimeout;
+                widget.addEventListener('mouseleave', () => {
+                    widgetTimeout = setTimeout(() => {
+                        const allPopups = widget.querySelectorAll('.recent-popup');
+                        allPopups.forEach(p => {
+                            p.style.opacity = '0';
+                            setTimeout(() => {
+                                p.style.display = 'none';
+                            }, 300);
+                        });
+                    }, 1000);
+                });
+                widget.addEventListener('mouseenter', () => {
+                    clearTimeout(widgetTimeout);
+                });
+            }
+            let hoverTimeout;
+            const items = document.querySelectorAll('#recently-viewed-widget li');
+            items.forEach(item => {
+                const popup = item.querySelector('.recent-popup');
+                const button = popup.querySelector('.add-to-cart-btn');
+                const hasVariants = item.getAttribute('data-has-variants') === 'true';
+                const productUrl = item.getAttribute('data-product-url');
+                if (hasVariants) {
+                    button.textContent = 'Select Options';
+                    button.classList.remove('add-to-cart-btn');
+                    button.onclick = () => {
+                        window.location.href = productUrl;
+                    };
+                } else {
+                    button.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        const productId = item.getAttribute('data-product-id');
+                        $.ajax({
+                            type: 'POST',
+                            url: '/cart/add_cart/' + productId + '/',
+                            data: {
+                                csrfmiddlewaretoken: '{{ csrf_token }}',
+                                quantity: 1
+                            },
+                            success: function(response) {
+                                alert('Added to cart!');
+                            },
+                            error: function(xhr, status, error) {
+                                console.error('Error:', error);
+                                alert('Error adding to cart: ' + error);
+                            }
+                        });
+                    });
+                }
+                item.addEventListener('mouseenter', () => {
+                    items.forEach(otherItem => {
+                        if (otherItem !== item) {
+                            const otherPopup = otherItem.querySelector('.recent-popup');
+                            otherPopup.style.opacity = '0';
+                            setTimeout(() => {
+                                otherPopup.style.display = 'none';
+                            }, 300);
+                        }
+                    });
+                    clearTimeout(hoverTimeout);
+                    popup.style.display = 'block';
+                    popup.style.opacity = '1';
+                });
+                item.addEventListener('mouseleave', () => {
+                    hoverTimeout = setTimeout(() => {
+                        popup.style.opacity = '0';
+                        setTimeout(() => {
+                            popup.style.display = 'none';
+                        }, 300);
+                    }, 1000);
+                });
+                popup.addEventListener('mouseenter', () => {
+                    clearTimeout(hoverTimeout);
+                });
+                popup.addEventListener('mouseleave', () => {
+                    hoverTimeout = setTimeout(() => {
+                        popup.style.opacity = '0';
+                        setTimeout(() => {
+                            popup.style.display = 'none';
+                        }, 300);
+                    }, 1000);
+                });
+            });
+        });
+        </script>
+    {% endblock %}
 </body>
 </html>

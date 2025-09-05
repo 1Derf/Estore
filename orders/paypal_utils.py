@@ -38,7 +38,7 @@ def create_paypal_payment(order, amount, request):
         "intent": "sale",
         "payer": {
             "payment_method": "paypal",
-            # NEW: Add billing (payer) details for AVS and pre-fill
+            #  Add billing (payer) details for AVS and pre-fill
             "payer_info": {
                 "email": order.email,
                 "first_name": order.first_name,
@@ -57,7 +57,7 @@ def create_paypal_payment(order, amount, request):
                 "currency": "USD"
             },
             "description": f"Payment for Order {order.order_number}",
-            # NEW: Add shipping address for pre-fill and verification
+            #  Add shipping address for pre-fill and verification
             "shipping_address": shipping_address
         }]
     })

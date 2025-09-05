@@ -96,13 +96,13 @@ class UserProfile(models.Model):
         return f'{self.address_line1} {self.address_line_2}'
 
 
-class BlockedIP(models.Model):
-    ip_address = models.GenericIPAddressField(unique=True)
-    reason = models.CharField(max_length=255, blank=True)
-    blocked_at = models.DateTimeField(auto_now_add=True)
-    is_blocked = models.BooleanField(default=True)  # For easy toggle (unblock by setting to False)
-
-    def __str__(self):
-        return f"{self.ip_address} ({'Blocked' if self.is_blocked else 'Unblocked'})"
+# class BlockedIP(models.Model):
+#     ip_address = models.GenericIPAddressField(unique=True)
+#     reason = models.CharField(max_length=255, blank=True)
+#     blocked_at = models.DateTimeField(auto_now_add=True)
+#     is_blocked = models.BooleanField(default=True)
+#
+#     def __str__(self):
+#         return f"{self.ip_address} ({'Blocked' if self.is_blocked else 'Unblocked'})"
 
 

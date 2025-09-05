@@ -1,5 +1,4 @@
 from lib2to3.fixes.fix_input import context
-
 from django.contrib.auth.decorators import login_required
 from django.contrib.messages import success
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
@@ -56,7 +55,7 @@ def register(request):
                 send_email.send()
 
                # messages.success(request, 'Registration successful! Please check your email to activate your account.')
-                return redirect('/accounts/login/?command=verification&email='+email)  # Redirect to login page (or another page)
+                return redirect('/securelogin/login/?command=verification&email='+email)  # Redirect to login page (or another page)
             except Exception as e:
                 messages.error(request, f'Registration failed: {str(e)}')
                 return render(request, 'accounts/register.html', {'form': form})

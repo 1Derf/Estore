@@ -1,36 +1,46 @@
-from OpenSSL.rand import status
-from django.db.models import CASCADE, Avg, Count
-from django.urls import reverse
 from django.db import models
+from django.db.models import Avg, Count
+from django.urls import reverse
 from accounts.models import Account
-from category.models import Category
-
-
+from django.contrib.auth.models import User
 
 # Create your models here.
-
-class Product(models.Model):
-    product_name   = models.CharField(max_length=200, unique=True)
-    slug           = models.SlugField(max_length=200, unique=True)
-    description    = models.TextField(max_length=1000, blank=True)
-    price          = models.DecimalField(max_digits=10, decimal_places=2)
-    images         = models.ImageField(upload_to='photos/products')
-    stock          = models.IntegerField()
-    is_available   = models.BooleanField(default=True)
-    category       = models.ForeignKey(Category, on_delete=models.CASCADE)
-    created_date   = models.DateTimeField(auto_now_add=True)
-    modified_date  = models.DateTimeField(auto_now=True)
-    manufacturer_part_number = models.CharField(max_length=50, blank=True, null=True, unique=True,
-                                                help_text="Manufacturer's part number (custom product ID)")
-    gtin = models.CharField(max_length=14, blank=True, null=True, unique=True,
-                            help_text="Global Trade Item Number (13-14 digits)")
-    upc_ean = models.CharField(max_length=13, blank=True, null=True, unique=True,
-                               help_text="UPC (12 digits) or EAN (13 digits)")
-    has_variants = models.BooleanField(default=False,
-                                       help_text="Enable if this product has variants (e.g., size/color).")  # NEW: Toggle for variants
+class Brand(models.Model):
+    name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True)
+    logo = models.ImageField(upload_to='photos/brands', blank=True, null=True)
+    description = models.TextField(blank=True)
+    website = models.URLField(blank=True, help_text="Link to the brand's official website")
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
 
     def get_url(self):
-        return reverse('product_detail', args=[self.category.slug, self.slug])
+        return reverse('store:brand_detail', args=[self.slug])
+
+    def __str__(self):
+        return self.name
+
+class Product(models.Model):
+    product_name = models.CharField(max_length=200, unique=True)
+    slug = models.SlugField(max_length=200, unique=True)
+    description = models.TextField(max_length=1000, blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    images = models.ImageField(upload_to='photos/products')
+    stock = models.IntegerField()
+    is_available = models.BooleanField(default=True)
+    category = models.ForeignKey('category.Category', on_delete=models.CASCADE)
+    brand = models.ForeignKey(Brand, on_delete=models.SET_NULL, null=True, blank=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    modified_date = models.DateTimeField(auto_now=True)
+    manufacturer_part_number = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text="Manufacturer's part number (custom product ID)")
+    gtin = models.CharField(max_length=14, blank=True, null=True, unique=True, help_text="Global Trade Item Number (13-14 digits)")
+    upc_ean = models.CharField(max_length=13, blank=True, null=True, unique=True, help_text="UPC (12 digits) or EAN (13 digits)")
+    has_variants = models.BooleanField(default=False, help_text="Enable if this product has variants (e.g., size/color).")
+    warranty_text = models.TextField(blank=True, null=True, help_text="Warranty description text")
+    warranty_file = models.FileField(upload_to='warranties/', blank=True, null=True, help_text="Upload warranty document (e.g., PDF)")
+
+    def get_url(self):
+        return reverse('store:product_detail', args=[self.category.slug, self.slug])
 
     def __str__(self):
         return self.product_name
@@ -49,6 +59,13 @@ class Product(models.Model):
             count = int(reviews['count'])
         return count
 
+class ProductDownload(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='downloads')
+    title = models.CharField(max_length=100, blank=True, default="Download", help_text="Title for the file (e.g., 'Product Catalog')")
+    file = models.FileField(upload_to='downloads/', help_text="Upload PDF or catalog file")
+
+    def __str__(self):
+        return f"{self.title} for {self.product.product_name}"
 
 class VariationManager(models.Manager):
     def colors(self):
@@ -57,24 +74,22 @@ class VariationManager(models.Manager):
     def sizes(self):
         return super(VariationManager, self).filter(variation_category='size', is_active=True)
 
-variation_category_choice = (
-    ('color', 'color'),
-    ('size', 'size'),
-)
-
-
 class Variation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variation_category = models.CharField(max_length=100, choices=variation_category_choice)
-    variation_value   = models.CharField(max_length=100)
-    is_active         = models.BooleanField(default=True)
-    created_date      = models.DateTimeField(auto_now=True)
-
+    variation_category = models.CharField(max_length=100, choices=(('color', 'color'), ('size', 'size')))
+    variation_value = models.CharField(max_length=100)
+    is_active = models.BooleanField(default=True)
+    created_date = models.DateTimeField(auto_now=True)
     objects = VariationManager()
 
     def __str__(self):
         return self.variation_value
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['variation_category']),
+            models.Index(fields=['variation_value']),
+        ]
 
 class ReviewRating(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -90,11 +105,10 @@ class ReviewRating(models.Model):
     def __str__(self):
         return self.subject
 
-
 class ProductGallery(models.Model):
     product = models.ForeignKey(Product, default=None, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='store/products/', max_length=255)
-    order = models.PositiveIntegerField(default=0, blank=True, null=False)  # NEW: For sorting galleries
+    order = models.PositiveIntegerField(default=0, blank=True, null=False)
 
     def __str__(self):
         return self.product.product_name
@@ -102,10 +116,27 @@ class ProductGallery(models.Model):
     class Meta:
         verbose_name = 'product gallery'
         verbose_name_plural = 'product gallery'
-        ordering = ['order']  # NEW: Auto-sort by order field
+        ordering = ['order']
 
     def save(self, *args, **kwargs):
-        if not self.order:  # NEW: Auto-set order if blank (increments based on existing galleries for this product)
+        if not self.order:
             last_order = ProductGallery.objects.filter(product=self.product).aggregate(models.Max('order'))['order__max'] or 0
             self.order = last_order + 1
         super().save(*args, **kwargs)
+
+class Wishlist(models.Model):
+    user = models.ForeignKey(Account, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    variations = models.ManyToManyField(Variation, blank=True)
+    added_date = models.DateTimeField(auto_now_add=True)
+    quantity = models.PositiveIntegerField(default=1)  # New field for quantity
+
+    def __str__(self):
+        variant_values = ", ".join([f"{v.variation_category}: {v.variation_value}" for v in self.variations.all()])
+        variants = f" ({variant_values})" if variant_values else ""
+        return f"{self.user.username} - {self.product.product_name}{variants} (Qty: {self.quantity})"
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['user', 'product']),
+        ]

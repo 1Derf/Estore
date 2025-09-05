@@ -1,5 +1,5 @@
 from django.http import HttpResponseForbidden
-from .models import BlockedIP
+from axes.models import AccessAttempt
 
 class BlockIPMiddleware:
     def __init__(self, get_response):
@@ -7,6 +7,6 @@ class BlockIPMiddleware:
 
     def __call__(self, request):
         ip = request.META.get('REMOTE_ADDR')
-        if BlockedIP.objects.filter(ip_address=ip, is_blocked=True).exists():
+        if AccessAttempt.objects.filter(ip_address=ip, failures_since_start__gte=5).exists():
             return HttpResponseForbidden("Access denied: Your IP is blocked.")
         return self.get_response(request)

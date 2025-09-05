@@ -1,286 +1,591 @@
 {% extends 'base.html' %}
-
 {% load static %}
+{% load wishlist_tags %}
 
 {% block content %}
 <section class="section-content padding-y bg">
-<div class="container">
-
-<!-- ============================ COMPONENT 1 ================================= -->
-<div class="card">
-	<div class="row no-gutters">
-		<aside class="col-md-6">
-<article class="gallery-wrap">
-	<div class="img-big-wrap mainImage">
-	  <center> <img src="{{ single_product.images.url }}"></center>
-	</div> <!-- img-big-wrap.// -->
-
-</article> <!-- gallery-wrap .end// -->
-		<ul class="thumb">
-			<li>
-				<a href="{{ single_product.images.url }}" target="mainImage"><img src="{{ single_product.images.url }}" alt="Product Image"></a>
-				{% for i in product_gallery %}
-				<a href="{{i.image.url}}" target="mainImage"><img src="{{i.image.url}}" alt="Product Image"></a>
-				{% endfor %}
-			</li>
-		</ul>
-		</aside>
-		<main class="col-md-6 border-left">
-
-			<form action="{% url 'add_cart' single_product.id %}" method="POST">
-				{% csrf_token %}
-				<article class="content-body">
-
-				<h2 class="title">{{ single_product.product_name }}</h2>
-					<div class="rating-star">
-						<span>
-							<i class="fa fa-star{% if single_product.averageReview < 0.5 %}-o{% elif single_product.averageReview >= 0.5 and single_product.averageReview < 1 %}-half-o {% endif %}" aria-hidden="true"></i>
-							<i class="fa fa-star{% if single_product.averageReview < 1.5 %}-o{% elif single_product.averageReview >= 1.5 and single_product.averageReview < 2 %}-half-o {% endif %}" aria-hidden="true"></i>
-							<i class="fa fa-star{% if single_product.averageReview < 2.5 %}-o{% elif single_product.averageReview >= 2.5 and single_product.averageReview < 3 %}-half-o {% endif %}" aria-hidden="true"></i>
-							<i class="fa fa-star{% if single_product.averageReview < 3.5 %}-o{% elif single_product.averageReview >= 3.5 and single_product.averageReview < 4 %}-half-o {% endif %}" aria-hidden="true"></i>
-							<i class="fa fa-star{% if single_product.averageReview < 4.5 %}-o{% elif single_product.averageReview >= 4.5 and single_product.averageReview < 5 %}-half-o {% endif %}" aria-hidden="true"></i>
-						<span>{{ single_product.countReview }} reviews</span>
-						</span>
-		</div>
-
-
-				<div class="mb-3">
-					<var class="price h4" id="product-price">${{ single_product.price|floatformat:2 }}</var>  {# Kept your |floatformat:2 for initial display #}
-				</div>
-
-				<p>{{ single_product.description }}</p>
-
-				{% if single_product.has_variants %}  {# NEW: Wrap <hr> and variants in conditional #}
-					<hr>
-					<div class="row">
-						<div class="item-option-select">
-							<h6>Choose Color</h6>
-								<select name="color" class="form-control" required>
-									<option value="" disabled selected>Select</option>
-									{% for i in single_product.variation_set.colors %}
-									<option value="{{ i.variation_value | lower }}">{{ i.variation_value | capfirst }}</option>
-									{% endfor %}
-								</select>
-						</div>
-					</div> <!-- row.// -->
-					<div class="row">
-						<div class="item-option-select">
-							<h6>Select Size</h6>
-								<select name="size" class="form-control" required>
-									<option value="" disabled selected>Select</option>
-									{% for i in single_product.variation_set.sizes %}
-									<option value="{{ i.variation_value | lower }}">{{ i.variation_value | capfirst }}</option>
-									{% endfor %}
-								</select>
-						</div>
-					</div>  <!--row.// -->
-					<hr>
-				{% endif %}  {# NEW: End conditional #}
-
-				{% if single_product.stock <= 0 %}
-				  <h5 class="text-danger">Out of Stock</h5>
-				{% else %}
-					{# UPDATED: Flex wrapper to keep quantity left and center button in remaining space #}
-					<div class="d-flex align-items-center mb-3">  {# NEW: Flex container #}
-						{# Quantity selector (unchanged, stays left) #}
-						<div class="quantity-selector d-inline-block" style="position: relative; width: 120px; flex-shrink: 0;">  {# flex-shrink:0 keeps it fixed #}
-							<span class="arrow down" onclick="changeQuantity(this, -1)"></span>  {# Down arrow (left, inside) #}
-							<input type="number" name="quantity" id="quantity-input" class="form-control text-center" value="1" min="1" max="{{ single_product.stock }}" required style="width: 100%; padding: 0 20px; border: 1px solid #ced4da; appearance: none; -webkit-appearance: none;">  {# UPDATED: Added ID for JS #}
-							<span class="arrow up" onclick="changeQuantity(this, 1)"></span>  {# Up arrow (right, inside) #}
-						</div>
-						{# NEW: Flexible centered container for the button in remaining space #}
-						<div class="flex-grow-1 d-flex justify-content-center">  {# Centers button in remaining space #}
-							<button type="submit" class="btn btn-primary" style="width: 210px;">  {# UPDATED: Wider (210px, ~30% increase from previous 160px; adjust if needed) #}
-								<span class="text">Add to Cart</span> <i class="fas fa-shopping-cart"></i>
-							</button>
-						</div>
-					</div>
-				{% endif %}
-				</article> <!-- product-info-aside .// -->
-			</form>
-		</main> <!-- col.// -->
-	</div> <!-- row.// -->
-</div> <!-- card.// -->
-<!-- ============================ COMPONENT 1 END .// ================================= -->
-
-<br>
-
-<div class="row">
-			<div class="col-md-9">
-
-
-	<form action="{% url 'submit_review' single_product.id %}" method="POST">
-		{% csrf_token %}
-		<h5>Write Your Review</h5>
-{% include 'includes/alerts.html' %}
-		<div>
-			<!-- Ratings stars -->
-			<label>How do you rate this product? </label>
-			<br>
-			<div class="rate">
-				<input type="radio" name="rating" id="rating10" value="5" required /><label for="rating10" title="5"></label>
-
-				<input type="radio" name="rating" id="rating8" value="4" required /><label for="rating8" title="4"></label>
-				<input type="radio" name="rating" id="rating7" value="3.5" required /><label for="rating7" title="3.5" class="half"></label>
-				<input type="radio" name="rating" id="rating6" value="3" required /><label for="rating6" title="3"></label>
-				<input type="radio" name="rating" id="rating5" value="2.5" required /><label for="rating5" title="2.5" class="half"></label>
-				<input type="radio" name="rating" id="rating4" value="2" required /><label for="rating4" title="2"></label>
-				<input type="radio" name="rating" id="rating3" value="1.5" required /><label for="rating3" title="1.5" class="half"></label>
-				<input type="radio" name="rating" id="rating2" value="1" required /><label for="rating2" title="1"></label>
-				<input type="radio" name="rating" id="rating1" value="0.5" required /><label for="rating1" title="0.5" class="half"></label>
-			</div>
-<br>
-			Review Title:
-			<input type="text" class="form-control" name="subject">
-			<br>
-			Review:
-			<textarea name="review" rows="4" class="form-control"></textarea>
-			<br>
-			{% if user.is_authenticated %}
-				{% if orderproduct %}
-			<input type="submit" value="Submit Review" class="btn btn-primary">
-				{% else %}
-					<p>You must have bought this product to post a review.</p>
-			 	{% endif %}
-
-			{% else %}
-			<p>You must be logged in to post a review. <span><a href="{% url 'login' %}">Login Now</a></span></p>
-			{% endif %}
-
-
-		</div>
-
-
-	</form>
-<br>
-<header class="section-heading">
-		<h3>Customer Reviews </h3>
-	<div class="rating-star">
-			<span>
-				<i class="fa fa-star{% if single_product.averageReview < 0.5 %}-o{% elif single_product.averageReview >= 0.5 and single_product.averageReview < 1 %}-half-o {% endif %}" aria-hidden="true"></i>
-				<i class="fa fa-star{% if single_product.averageReview < 1.5 %}-o{% elif single_product.averageReview >= 1.5 and single_product.averageReview < 2 %}-half-o {% endif %}" aria-hidden="true"></i>
-				<i class="fa fa-star{% if single_product.averageReview < 2.5 %}-o{% elif single_product.averageReview >= 2.5 and single_product.averageReview < 3 %}-half-o {% endif %}" aria-hidden="true"></i>
-				<i class="fa fa-star{% if single_product.averageReview < 3.5 %}-o{% elif single_product.averageReview >= 3.5 and single_product.averageReview < 4 %}-half-o {% endif %}" aria-hidden="true"></i>
-				<i class="fa fa-star{% if single_product.averageReview < 4.5 %}-o{% elif single_product.averageReview >= 4.5 and single_product.averageReview < 5 %}-half-o {% endif %}" aria-hidden="true"></i>
-			<span>{{ single_product.countReview }} reviews</span>
-			</span>
-	</div>
-
-	</header>
-	{% for review in reviews %}
-			<article class="box mb-3">
-				<div class="icontext w-100">
-					<div class="text">
-						<span class="date text-muted float-md-right">{{review.updated_at}} </span>
-						<h6 class="mb-1">{{review.user.full_name}} </h6>
-						<div class="rating-star">
-							<span>
-								<i class="fa fa-star{% if review.rating == 0.5 %}-half-o{% elif review.rating < 1 %}-o {% endif %}" aria-hidden="true"></i>
-								<i class="fa fa-star{% if review.rating == 1.5 %}-half-o{% elif review.rating < 2 %}-o {% endif %}" aria-hidden="true"></i>
-								<i class="fa fa-star{% if review.rating == 2.5 %}-half-o{% elif review.rating < 3 %}-o {% endif %}" aria-hidden="true"></i>
-								<i class="fa fa-star{% if review.rating == 3.5 %}-half-o{% elif review.rating < 4 %}-o {% endif %}" aria-hidden="true"></i>
-								<i class="fa fa-star{% if review.rating == 4.5 %}-half-o{% elif review.rating < 5 %}-o {% endif %}" aria-hidden="true"></i>
-							</span>
-						</div>
-						<span>{{ single_product.countReview}} reviews</span>
-					</div>
-				</div> <!-- icontext.// -->
-				<div class="mt-3">
-					<h6>{{review.subject}}</h6>
-
-					<p>
-						{{review.review}}
-					</p>
-				</div>
-			</article>
-	{% endfor %}
-
-
-	</div> <!-- col.// -->
-</div> <!-- row.// -->
-
-
-</div> <!-- container .//  -->
+    <div class="container">
+        <!-- ============================ COMPONENT 1 ================================= -->
+        <div class="card">
+            <div class="row no-gutters">
+                <aside class="col-md-6">
+                    <article class="gallery-wrap">
+                        <div class="img-big-wrap mainImage" style="position: relative; text-align: center; width: 100%; height: 400px; overflow: hidden;">
+                            <div class="zoom-container" style="position: relative; width: 100%; height: 100%; overflow: hidden;">
+                                <img id="main-image" src="{{ single_product.images.url }}" alt="{{ single_product.product_name }}" style="transition: all 0.3s ease; position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; object-position: center;">
+                            </div>
+                        </div>
+                        <ul class="thumb" style="display: flex; flex-wrap: wrap; justify-content: center; margin-top: 10px; position: relative;">
+                            <li>
+                                <a href="#" data-src="{{ single_product.images.url }}" data-alt="Main Product Image"><img src="{{ single_product.images.url }}" alt="Product Image"></a>
+                                {% for i in product_gallery %}
+                                    <a href="#" data-src="{{i.image.url}}" data-alt="Gallery Image"><img src="{{i.image.url}}" alt="Product Image"></a>
+                                {% endfor %}
+                            </li>
+                        </ul>
+                    </article>
+                </aside>
+                <main class="col-md-6 border-left">
+                    <form action="{% url 'add_cart' single_product.id %}" method="POST">
+                        {% csrf_token %}
+                        <article class="content-body">
+                            <h2 class="title">{{ single_product.product_name }}</h2>
+                            <div class="rating-star">
+                                <span>
+                                    <i class="fa fa-star{% if single_product.averageReview < 0.5 %}-o{% elif single_product.averageReview >= 0.5 and single_product.averageReview < 1 %}-half-o {% endif %}" aria-hidden="true"></i>
+                                    <i class="fa fa-star{% if single_product.averageReview < 1.5 %}-o{% elif single_product.averageReview >= 1.5 and single_product.averageReview < 2 %}-half-o {% endif %}" aria-hidden="true"></i>
+                                    <i class="fa fa-star{% if single_product.averageReview < 2.5 %}-o{% elif single_product.averageReview >= 2.5 and single_product.averageReview < 3 %}-half-o {% endif %}" aria-hidden="true"></i>
+                                    <i class="fa fa-star{% if single_product.averageReview < 3.5 %}-o{% elif single_product.averageReview >= 3.5 and single_product.averageReview < 4 %}-half-o {% endif %}" aria-hidden="true"></i>
+                                    <i class="fa fa-star{% if single_product.averageReview < 4.5 %}-o{% elif single_product.averageReview >= 4.5 and single_product.averageReview < 5 %}-half-o {% endif %}" aria-hidden="true"></i>
+                                    <span>{{ single_product.countReview }} reviews</span>
+                                </span>
+                            </div>
+                            <div class="mb-3">
+                                <var class="price h4" id="product-price">${{ single_product.price|floatformat:2 }}</var>
+                            </div>
+                            {% if single_product.has_variants %}
+                                <div class="row mb-4">
+                                    <div class="col-6 pe-3">
+                                        <h6>Choose Color</h6>
+                                        <select name="color" class="form-control" required>
+                                            <option value="" disabled selected>Select</option>
+                                            {% for i in single_product.variation_set.colors %}
+                                                <option value="{{ i.variation_value|lower }}">{{ i.variation_value|capfirst }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="col-6 ps-3">
+                                        <h6>Select Size</h6>
+                                        <select name="size" class="form-control" required>
+                                            <option value="" disabled selected>Select</option>
+                                            {% for i in single_product.variation_set.sizes %}
+                                                <option value="{{ i.variation_value|lower }}">{{ i.variation_value|capfirst }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            {% if single_product.stock <= 0 %}
+                                <h5 class="text-danger">Out of Stock</h5>
+                            {% else %}
+                                <div class="mb-3">
+                                    <h6>Quantity:</h6>
+                                    <div class="quantity-selector d-inline-block" style="position: relative; width: 120px; flex-shrink: 0;">
+                                        <span class="arrow down" onclick="changeQuantity(this, -1)"></span>
+                                        <input type="number" name="quantity" id="quantity-input" class="form-control text-center" value="1" min="1" max="{{ single_product.stock }}" required style="width: 100%; padding: 0 20px; border: 1px solid #ced4da; appearance: none; -webkit-appearance: none;">
+                                        <span class="arrow up" onclick="changeQuantity(this, 1)"></span>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <button type="submit" class="btn btn-primary w-100">
+                                            <span class="text">Add to Cart</span>
+                                            <i class="fas fa-shopping-cart"></i>
+                                        </button>
+                                    </div>
+                                    <div class="col-6">
+                                        <button type="button" id="wishlist-btn" class="btn btn-secondary w-100"
+                                                data-product-id="{{ single_product.id }}"
+                                                data-has-variants="{{ single_product.has_variants|yesno:'true,false' }}">
+                                            {% if request.user.is_authenticated %}
+                                                {% with wishlist_items=request.user.wishlist_set.all %}
+                                                    {% if single_product.id in wishlist_items.values_list|lookup:'product_id' %}
+                                                        Remove from Wish List <i class="fas fa-heart-broken"></i>
+                                                    {% else %}
+                                                        Add to Wish List <i class="fas fa-heart"></i>
+                                                    {% endif %}
+                                                {% endwith %}
+                                            {% else %}
+                                                Add to Wish List <i class="fas fa-heart"></i>
+                                            {% endif %}
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="wishlist-error" class="alert alert-danger mt-2" style="display: none;">Please select all required variations.</div>
+                            {% endif %}
+                            <div class="mb-3" style="position: relative;">
+                                {% if single_product.brand and single_product.brand.logo %}
+                                    {% if single_product.brand.website %}
+                                        <a href="{{ single_product.brand.website }}" target="_blank">
+                                            <img src="{{ single_product.brand.logo.url }}" alt="{{ single_product.brand.name }}" style="height: 50px; float: right; margin-left: 10px; margin-bottom: 10px;">
+                                        </a>
+                                    {% else %}
+                                        <img src="{{ single_product.brand.logo.url }}" alt="{{ single_product.brand.name }}" style="height: 50px; float: right; margin-left: 10px; margin-bottom: 10px;">
+                                    {% endif %}
+                                {% endif %}
+                                <p><strong>SKU:</strong> {% if single_product.manufacturer_part_number %}{{ single_product.manufacturer_part_number }}{% else %}N/A{% endif %}</p>
+                                {% if single_product.gtin %}
+                                    <p><strong>GTIN:</strong> {{ single_product.gtin }}</p>
+                                {% endif %}
+                                <p><strong>Brand:</strong> {% if single_product.brand %}{{ single_product.brand.name }}{% else %}N/A{% endif %}</p>
+                            </div>
+                        </article>
+                    </form>
+                </main>
+            </div>
+        </div>
+        <!-- ============================ COMPONENT 1 END .// ================================= -->
+        <br>
+        <ul class="nav nav-tabs" id="productTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="description-tab" data-bs-toggle="tab" data-bs-target="#description" type="button" role="tab" aria-controls="description" aria-selected="true">Description</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="warranty-tab" data-bs-toggle="tab" data-bs-target="#warranty" type="button" role="tab" aria-controls="warranty" aria-selected="false">Warranty</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="downloads-tab" data-bs-toggle="tab" data-bs-target="#downloads" type="button" role="tab" aria-controls="downloads" aria-selected="false">Downloads</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab" aria-controls="reviews" aria-selected="false">Reviews</button>
+            </li>
+        </ul>
+        <div class="tab-content p-4" id="productTabsContent">
+            <div class="tab-pane fade show active" id="description" role="tabpanel" aria-labelledby="description-tab">
+                <p>{{ single_product.description }}</p>
+            </div>
+            <div class="tab-pane fade" id="warranty" role="tabpanel" aria-labelledby="warranty-tab">
+                {% if single_product.warranty_text %}
+                    <p>{{ single_product.warranty_text }}</p>
+                {% else %}
+                    <p>No warranty information available.</p>
+                {% endif %}
+                {% if single_product.warranty_file %}
+                    <a href="{{ single_product.warranty_file.url }}" class="btn btn-primary" target="_blank">View Warranty Document</a>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="downloads" role="tabpanel" aria-labelledby="downloads-tab">
+                {% if product_downloads %}
+                    <ul>
+                        {% for download in product_downloads %}
+                            <li><a href="{{ download.file.url }}" target="_blank">{{ download.title|default:"View Document" }}</a></li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No downloadable documents available.</p>
+                {% endif %}
+            </div>
+            <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
+                <div id="rating-error" class="alert alert-danger" style="display: none;">Please select a star rating for this product.</div>
+                <form id="review-form" action="{% url 'store:submit_review' single_product.id %}" method="POST">
+                    {% csrf_token %}
+                    <h5>Write Your Review</h5>
+                    {% include 'includes/alerts.html' %}
+                    <div>
+                        <label>How do you rate this product? </label>
+                        <br>
+                        <div class="rate">
+                            <input type="radio" name="rating" id="rating10" value="5" /><label for="rating10" title="5"></label>
+                            <input type="radio" name="rating" id="rating8" value="4" /><label for="rating8" title="4"></label>
+                            <input type="radio" name="rating" id="rating7" value="3.5" /><label for="rating7" title="3.5" class="half"></label>
+                            <input type="radio" name="rating" id="rating6" value="3" /><label for="rating6" title="3"></label>
+                            <input type="radio" name="rating" id="rating5" value="2.5" /><label for="rating5" title="2.5" class="half"></label>
+                            <input type="radio" name="rating" id="rating4" value="2" /><label for="rating4" title="2"></label>
+                            <input type="radio" name="rating" id="rating3" value="1.5" /><label for="rating3" title="1.5" class="half"></label>
+                            <input type="radio" name="rating" id="rating2" value="1" /><label for="rating2" title="1"></label>
+                            <input type="radio" name="rating" id="rating1" value="0.5" /><label for="rating1" title="0.5" class="half"></label>
+                        </div>
+                        <br>
+                        Review Title: <input type="text" class="form-control" name="subject">
+                        <br>
+                        Review: <textarea name="review" rows="4" class="form-control"></textarea>
+                        <br>
+                        {% if user.is_authenticated %}
+                            {% if orderproduct %}
+                                <input type="submit" value="Submit Review" class="btn btn-primary">
+                            {% else %}
+                                <p>You must have bought this product to post a review.</p>
+                            {% endif %}
+                        {% else %}
+                            <p>You must be logged in to post a review. <span><a href="{% url 'login' %}">Login Now</a></span></p>
+                        {% endif %}
+                    </div>
+                </form>
+                <br>
+                <header class="section-heading">
+                    <h3>Customer Reviews </h3>
+                    <div class="rating-star">
+                        <span>
+                            <i class="fa fa-star{% if single_product.averageReview < 0.5 %}-o{% elif single_product.averageReview >= 0.5 and single_product.averageReview < 1 %}-half-o {% endif %}" aria-hidden="true"></i>
+                            <i class="fa fa-star{% if single_product.averageReview < 1.5 %}-o{% elif single_product.averageReview >= 1.5 and single_product.averageReview < 2 %}-half-o {% endif %}" aria-hidden="true"></i>
+                            <i class="fa fa-star{% if single_product.averageReview < 2.5 %}-o{% elif single_product.averageReview >= 2.5 and single_product.averageReview < 3 %}-half-o {% endif %}" aria-hidden="true"></i>
+                            <i class="fa fa-star{% if single_product.averageReview < 3.5 %}-o{% elif single_product.averageReview >= 3.5 and single_product.averageReview < 4 %}-half-o {% endif %}" aria-hidden="true"></i>
+                            <i class="fa fa-star{% if single_product.averageReview < 4.5 %}-o{% elif single_product.averageReview >= 4.5 and single_product.averageReview < 5 %}-half-o {% endif %}" aria-hidden="true"></i>
+                            <span>{{ single_product.countReview }} reviews</span>
+                        </span>
+                    </div>
+                </header>
+                {% for review in reviews %}
+                    <article class="box mb-3">
+                        <div class="icontext w-100">
+                            <div class="text">
+                                <span class="date text-muted float-md-right">{{review.updated_at}} </span>
+                                <h6 class="mb-1">{{review.user.full_name}} </h6>
+                                <div class="rating-star">
+                                    <span>
+                                        <i class="fa fa-star{% if review.rating == 0.5 %}-half-o{% elif review.rating < 1 %}-o {% endif %}" aria-hidden="true"></i>
+                                        <i class="fa fa-star{% if review.rating == 1.5 %}-half-o{% elif review.rating < 2 %}-o {% endif %}" aria-hidden="true"></i>
+                                        <i class="fa fa-star{% if review.rating == 2.5 %}-half-o{% elif review.rating < 3 %}-o {% endif %}" aria-hidden="true"></i>
+                                        <i class="fa fa-star{% if review.rating == 3.5 %}-half-o{% elif review.rating < 4 %}-o {% endif %}" aria-hidden="true"></i>
+                                        <i class="fa fa-star{% if review.rating == 4.5 %}-half-o{% elif review.rating < 5 %}-o {% endif %}" aria-hidden="true"></i>
+                                    </span>
+                                </div>
+                                <span>{{ single_product.countReview}} reviews</span>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h6>{{review.subject}}</h6>
+                            <p>{{review.review}}</p>
+                        </div>
+                    </article>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
 </section>
-<!-- ========================= SECTION CONTENT END// ========================= -->
-
-{# UPDATED: Inline CSS for arrows INSIDE the box (narrowed to 120px) #}
 <style>
-    .quantity-selector {
-        position: relative;
-        display: inline-block;
-        width: 120px;  /* Narrowed box */
+.quantity-selector {
+    position: relative;
+    display: inline-block;
+    width: 120px;
+}
+.quantity-selector .arrow {
+    cursor: pointer;
+    font-size: 18px;
+    color: #000;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    user-select: none;
+    font-weight: 500;
+    width: 18px;
+    text-align: center;
+}
+.quantity-selector .down {
+    left: 5px;
+}
+.quantity-selector .up {
+    right: 5px;
+}
+.quantity-selector .down::before {
+    content: '˅';
+}
+.quantity-selector .up::before {
+    content: '˄';
+}
+.quantity-selector input {
+    width: 100%;
+    padding: 0 25px;
+    border: 1px solid #ced4da;
+    appearance: none;
+    -webkit-appearance: none;
+    text-align: center;
+}
+.quantity-selector input::-webkit-outer-spin-button,
+.quantity-selector input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+.quantity-selector input[type=number] {
+    -moz-appearance: textfield;
+}
+.thumb {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.thumb li {
+    margin: 5px;
+}
+.thumb img {
+    width: 80px;
+    height: auto;
+    border: 1px solid #ddd;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+.thumb img:hover {
+    border: 2px solid #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    transform: scale(1.1);
+}
+.nav-tabs .nav-link {
+    transition: all 0.3s ease;
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+.nav-tabs .nav-link:hover:not(.active) {
+    border: 2px solid #007bff;
+    box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+    background-color: rgba(0, 123, 255, 0.1);
+}
+.zoom-container {
+    cursor: zoom-in;
+}
+.zoom-container:hover #main-image {
+    cursor: crosshair;
+}
+@media (max-width: 576px) {
+    .thumb {
+        flex-direction: column;
+        align-items: center;
     }
-    .quantity-selector .arrow {
-        cursor: pointer;
-        font-size: 18px;  /* Size */
-        color: #000;  /* Black */
-        position: absolute;
-        top: 50%;
-        transform: translateY(-50%);
-        user-select: none;
-        font-weight: 500;  /* Medium boldness */
-        width: 18px;
-        text-align: center;
+    .img-big-wrap {
+        height: 300px;
     }
-    .quantity-selector .down {
-        left: 5px;  /* Positioned inside left */
-    }
-    .quantity-selector .up {
-        right: 5px;  /* Positioned inside right */
-    }
-    .quantity-selector .down::before { content: '˅'; }  {# Open down V #}
-    .quantity-selector .up::before { content: '˄'; }  {# Open up inverted V #}
-    .quantity-selector input {
-        width: 100%;
-        padding: 0 25px;  /* Padding to make space for arrows inside */
-        border: 1px solid #ced4da;
-        appearance: none;
-        -webkit-appearance: none;
-        text-align: center;
-    }
-    .quantity-selector input::-webkit-outer-spin-button,
-    .quantity-selector input::-webkit-inner-spin-button {
-        -webkit-appearance: none;  /* Hide browser arrows */
-        margin: 0;
-    }
-    .quantity-selector input[type=number] {
-        -moz-appearance: textfield;  /* Hide Firefox arrows */
-    }
+}
 </style>
-
-{# UPDATED: Inline JS for arrow click functionality + live price update #}
 <script>
-    let originalBasePrice;  // NEW: Global variable to store the original base price
-
-    function changeQuantity(arrow, change) {
-        const input = arrow.parentNode.querySelector('input[type="number"]');
-        let value = parseInt(input.value);
-        value += change;
-        if (value < parseInt(input.min)) value = input.min;
-        if (value > parseInt(input.max)) value = input.max;
-        input.value = value;
-        updatePrice();  // Call price update after change
+let originalBasePrice;
+function changeQuantity(arrow, change) {
+    const input = arrow.parentNode.querySelector('input[type="number"]');
+    let value = parseInt(input.value);
+    value += change;
+    if (value < parseInt(input.min)) value = input.min;
+    if (value > parseInt(input.max)) value = input.max;
+    input.value = value;
+    updatePrice();
+}
+function updatePrice() {
+    const quantityInput = document.getElementById('quantity-input');
+    const priceElement = document.getElementById('product-price');
+    const quantity = parseInt(quantityInput.value) || 1;
+    const totalPrice = (originalBasePrice * quantity).toFixed(2);
+    priceElement.innerText = '$' + totalPrice;
+}
+document.addEventListener('DOMContentLoaded', function() {
+    const quantityInput = document.getElementById('quantity-input');
+    const priceElement = document.getElementById('product-price');
+    const basePriceText = priceElement.innerText.replace('$', '');
+    originalBasePrice = parseFloat(basePriceText);
+    if (quantityInput) {
+        quantityInput.addEventListener('input', updatePrice);
+        updatePrice();
     }
-
-    // NEW: Function to update displayed price based on quantity
-    function updatePrice() {
-        const quantityInput = document.getElementById('quantity-input');
-        const priceElement = document.getElementById('product-price');
-        const quantity = parseInt(quantityInput.value) || 1;  // Default to 1 if invalid
-        const totalPrice = (originalBasePrice * quantity).toFixed(2);  // Use ORIGINAL base price
-        priceElement.innerText = '$' + totalPrice;  // Update display
+    const activeTab = localStorage.getItem('activeProductTab');
+    if (activeTab) {
+        const tabButton = document.querySelector(`[data-bs-target="${activeTab}"]`);
+        if (tabButton) {
+            const tab = new bootstrap.Tab(tabButton);
+            tab.show();
+        }
     }
-
-    // NEW: Listen for direct input changes and capture original price on load
-    document.addEventListener('DOMContentLoaded', function() {
-        const quantityInput = document.getElementById('quantity-input');
-        const priceElement = document.getElementById('product-price');
-        const basePriceText = priceElement.innerText.replace('$', '');  // Extract original base price (once)
-        originalBasePrice = parseFloat(basePriceText);  // Store it globally
-        quantityInput.addEventListener('input', updatePrice);  // Update on typing
-        updatePrice();  // Initial call (though qty=1 means no change)
+    const tabLinks = document.querySelectorAll('.nav-tabs .nav-link');
+    tabLinks.forEach(link => {
+        link.addEventListener('shown.bs.tab', function(event) {
+            localStorage.setItem('activeProductTab', event.target.getAttribute('data-bs-target'));
+            const tabPane = document.querySelector(event.target.getAttribute('data-bs-target'));
+            if (tabPane) {
+                tabPane.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+            }
+        });
     });
+    const reviewForm = document.getElementById('review-form');
+    const ratingError = document.getElementById('rating-error');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(event) {
+            const ratingSelected = document.querySelector('input[name="rating"]:checked');
+            if (!ratingSelected) {
+                event.preventDefault();
+                ratingError.style.display = 'block';
+                ratingError.scrollIntoView({ behavior: 'smooth' });
+            } else {
+                ratingError.style.display = 'none';
+            }
+        });
+    }
+    const thumbnails = document.querySelectorAll('.thumb a');
+    const mainImage = document.getElementById('main-image');
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function(event) {
+            event.preventDefault();
+            const newSrc = this.getAttribute('data-src');
+            const newAlt = this.getAttribute('data-alt');
+            if (mainImage && newSrc) {
+                const preloader = new Image();
+                preloader.src = newSrc;
+                preloader.onload = () => {
+                    mainImage.style.opacity = 0;
+                    setTimeout(() => {
+                        mainImage.src = preloader.src;
+                        mainImage.alt = newAlt || 'Product Image';
+                        mainImage.style.opacity = 1;
+                    }, 300);
+                };
+            }
+        });
+    });
+    const zoomContainer = document.querySelector('.zoom-container');
+    const zoomImage = document.getElementById('main-image');
+    const zoomFactor = 1.75;
+    if (zoomImage) {
+        zoomImage.addEventListener('load', () => {
+            console.log('Image loaded:', zoomImage.src);
+        });
+    }
+    if (zoomContainer) {
+        zoomContainer.addEventListener('mouseenter', () => {
+            zoomImage.style.width = `${100 * zoomFactor}%`;
+            zoomImage.style.height = `${100 * zoomFactor}%`;
+        });
+        zoomContainer.addEventListener('mousemove', (e) => {
+            const { left, top, width, height } = zoomContainer.getBoundingClientRect();
+            let x = (e.clientX - left) / width;
+            let y = (e.clientY - top) / height;
+            x = Math.max(0.05, Math.min(0.95, x));
+            y = Math.max(0.05, Math.min(0.95, y));
+            zoomImage.style.left = `${-x * (width * (zoomFactor - 1))}px`;
+            zoomImage.style.top = `${-y * (height * (zoomFactor - 1))}px`;
+        });
+        zoomContainer.addEventListener('mouseleave', () => {
+            zoomImage.style.width = '100%';
+            zoomImage.style.height = '100%';
+            zoomImage.style.left = '0';
+            zoomImage.style.top = '0';
+        });
+    }
+    // AJAX for Add to Cart button
+    const cartForm = document.querySelector('form[action*="add_cart"]');
+    const cartError = document.getElementById('wishlist-error');
+    if (cartForm) {
+        cartForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const formData = new FormData(cartForm);
+            const productId = document.getElementById('wishlist-btn').getAttribute('data-product-id');
+            const url = `/cart/add_cart/${productId}/`;
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                cartError.classList.remove('alert-danger');
+                cartError.classList.add('alert-success');
+                cartError.innerText = 'Added to cart!';
+                cartError.style.display = 'block';
+                setTimeout(() => {
+                    cartError.style.display = 'none';
+                    cartError.classList.remove('alert-success');
+                    cartError.classList.add('alert-danger');
+                    cartError.innerText = 'Please select all required variations.';
+                }, 3000);
+            })
+            .catch(error => {
+                cartError.classList.remove('alert-success');
+                cartError.classList.add('alert-danger');
+                cartError.innerText = `Failed to add to cart: ${error.message}`;
+                cartError.style.display = 'block';
+                setTimeout(() => cartError.style.display = 'none', 5000);
+            });
+        });
+    }
+    // AJAX for Wishlist button toggle
+    const wishlistBtn = document.getElementById('wishlist-btn');
+const wishlistError = document.getElementById('wishlist-error');
+if (wishlistBtn && wishlistError) {
+    wishlistBtn.addEventListener('click', function() {
+        console.log('Wishlist button clicked');
+        const productId = this.getAttribute('data-product-id');
+        const hasVariants = this.getAttribute('data-has-variants') === 'true';
+        const isAdd = this.textContent.includes('Add');
+        const url = isAdd ? `/store/add_to_wishlist/${productId}/` : `/store/remove_from_wishlist/${productId}/`;
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        if (hasVariants) {
+            const variantSelects = document.querySelectorAll('select.form-control');
+            let allSelected = true;
+            variantSelects.forEach(select => {
+                const category = select.getAttribute('name');
+                const value = select.value;
+                if (!value || value === 'Select') {
+                    allSelected = false;
+                } else {
+                    formData.append(category, value);
+                }
+            });
+            if (!allSelected && isAdd) {
+                wishlistError.classList.remove('alert-success');
+                wishlistError.classList.add('alert-danger');
+                wishlistError.innerText = 'Please select all required variations.';
+                wishlistError.style.display = 'block';
+                setTimeout(() => wishlistError.style.display = 'none', 5000);
+                return;
+            }
+        }
+        const quantityInput = document.getElementById('quantity-input');
+        if (quantityInput) {
+            console.log('Quantity:', quantityInput.value);
+            formData.append('quantity', quantityInput.value);
+        }
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        }).then(response => {
+            if (!response.ok) {
+                return response.json().then(data => {
+                    if (data.status === 'login_required') {
+                        return data;
+                    }
+                    throw new Error(`HTTP error! Status: ${response.status}, Message: ${data.message || 'Unknown error'}`);
+                }).catch(() => {
+                    throw new Error('Failed to parse response');
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'login_required') {
+                wishlistError.classList.remove('alert-danger');
+                wishlistError.classList.add('alert-success');
+                wishlistError.innerText = data.message;
+                wishlistError.style.display = 'block';
+                setTimeout(() => {
+                    window.location.href = data.redirect;
+                }, 2000);
+                return;
+            }
+            wishlistError.classList.remove('alert-danger');
+            wishlistError.classList.add('alert-success');
+            wishlistError.innerText = data.message;
+            wishlistError.style.display = 'block';
+            setTimeout(() => {
+                wishlistError.style.display = 'none';
+                wishlistError.classList.remove('alert-success');
+                wishlistError.classList.add('alert-danger');
+                wishlistError.innerText = 'Please select all required variations.';
+            }, 3000);
+            if (data.status === 'added' || data.status === 'exists') {
+                wishlistBtn.innerHTML = 'Remove from Wish List <i class="fas fa-heart-broken"></i>';
+            } else if (data.status === 'removed') {
+                wishlistBtn.innerHTML = 'Add to Wish List <i class="fas fa-heart"></i>';
+            }
+        })
+        .catch(error => {
+            wishlistError.classList.remove('alert-success');
+            wishlistError.classList.add('alert-danger');
+            wishlistError.innerText = `An error occurred: ${error.message}`;
+            wishlistError.style.display = 'block';
+            setTimeout(() => wishlistError.style.display = 'none', 5000);
+            console.error('Wishlist error:', error.message);
+        });
+    });
+}
+});
 </script>
-
 {% endblock %}

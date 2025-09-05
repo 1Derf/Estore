@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="section-content padding-y bg">
+    <div class="container">
+        <h2 class="text-center">My Wishlist</h2>
+        {% if wishlist_items %}
+            <div class="row">
+                {% for item in wishlist_items %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card">
+                            <img src="{{ item.product.images.url }}" class="card-img-top" alt="{{ item.product.product_name }}">
+                            <div class="card-body">
+                                <h5 class="card-title">{{ item.product.product_name }} (Quantity: {{ item.quantity }})</h5>
+                                <p class="card-text">${{ item.product.price|floatformat:2 }}</p>
+                                {% if item.variations.all %}
+                                    <p class="card-text">
+                                        {% for variation in item.variations.all %}
+                                            <strong>{{ variation.variation_category|capfirst }}:</strong> {{ variation.variation_value|capfirst }}
+                                            {% if not forloop.last %}<br>{% endif %}
+                                        {% endfor %}
+                                    </p>
+                                {% endif %}
+                                <a href="{{ item.product.get_url }}" class="btn btn-primary btn-sm">View Details</a>
+                                <button class="btn btn-success btn-sm add-to-cart"
+                                        data-product-id="{{ item.product.id }}"
+                                        data-quantity="{{ item.quantity }}"
+                                        data-variations='[
+                                            {% for variation in item.variations.all %}
+                                                {"variation_category": "{{ variation.variation_category|escapejs }}", "variation_value": "{{ variation.variation_value|escapejs }}"}
+                                                {% if not forloop.last %},{% endif %}
+                                            {% endfor %}
+                                        ]'>Add to Cart</button>
+                                <button class="btn btn-danger btn-sm remove-from-wishlist" data-product-id="{{ item.product.id }}">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-center">Your wishlist is empty. Start adding products!</p>
+        {% endif %}
+    </div>
+</section>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // AJAX for Remove from Wishlist
+    const removeButtons = document.querySelectorAll('.remove-from-wishlist');
+    removeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            fetch(`/store/remove_from_wishlist/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(response => response.json())
+              .then(data => {
+                  alert(data.message);
+                  location.reload();
+              });
+        });
+    });
+
+    // AJAX for Add to Cart
+    const addToCartButtons = document.querySelectorAll('.add-to-cart');
+    addToCartButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const quantity = this.getAttribute('data-quantity') || '1';
+            const variations = JSON.parse(this.getAttribute('data-variations') || '[]');
+            const formData = new FormData();
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            formData.append('quantity', quantity);
+            variations.forEach(variation => {
+                formData.append(variation.variation_category, variation.variation_value);
+            });
+
+            fetch(`/cart/add_cart/${productId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(response => {
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Added to cart!');
+                location.reload();
+            })
+            .catch(error => {
+                alert(`Failed to add to cart: ${error.message}`);
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
