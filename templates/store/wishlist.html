@@ -17,7 +17,7 @@
                                 {% if item.variations.all %}
                                     <p class="card-text">
                                         {% for variation in item.variations.all %}
-                                            <strong>{{ variation.variation_category|capfirst }}:</strong> {{ variation.variation_value|capfirst }}
+                                            <strong>{{ variation.get_variation_category_display }}:</strong> {{ variation.variation_value|capfirst }}
                                             {% if not forloop.last %}<br>{% endif %}
                                         {% endfor %}
                                     </p>

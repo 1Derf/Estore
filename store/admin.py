@@ -37,7 +37,7 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     list_display = ('product_name', 'price', 'stock', 'category', 'modified_date', 'is_available',
                     'manufacturer_part_number', 'gtin', 'upc_ean')
     prepopulated_fields = {'slug': ('product_name',)}
-    inlines = [ProductGalleryInline, ProductDownloadInline]  #  Added ProductDownloadInline
+    inlines = [ProductGalleryInline, ProductDownloadInline]  # ProductDownloadInline
     readonly_fields = ('modified_date', 'main_image_preview')
 
     def main_image_preview(self, obj):  # Keeps main thumbnail working

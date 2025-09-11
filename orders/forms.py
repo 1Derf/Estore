@@ -88,14 +88,14 @@ class OrderForm(forms.ModelForm):
         help_text='Select shipping country (defaults to billing if blank)'
     )
 
- # NEW: Clean and capitalize billing city
+ #  Clean and capitalize billing city
     def clean_city(self):
         city = self.cleaned_data.get('city')
         if city:
             return city.title()  # Capitalizes first letter of each word (e.g., "new york" -> "New York")
         return city  # If blank, leave as is
 
-    # NEW: Clean and capitalize shipping city
+    #  Clean and capitalize shipping city
     def clean_shipping_city(self):
         shipping_city = self.cleaned_data.get('shipping_city')
         if shipping_city:

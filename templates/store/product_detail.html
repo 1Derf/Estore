@@ -46,21 +46,16 @@
                             {% if single_product.has_variants %}
                                 <div class="row mb-4">
                                     <div class="col-6 pe-3">
-                                        <h6>Choose Color</h6>
-                                        <select name="color" class="form-control" required>
-                                            <option value="" disabled selected>Select</option>
-                                            {% for i in single_product.variation_set.colors %}
-                                                <option value="{{ i.variation_value|lower }}">{{ i.variation_value|capfirst }}</option>
-                                            {% endfor %}
-                                        </select>
                                     </div>
                                     <div class="col-6 ps-3">
-                                        <h6>Select Size</h6>
-                                        <select name="size" class="form-control" required>
-                                            <option value="" disabled selected>Select</option>
-                                            {% for i in single_product.variation_set.sizes %}
-                                                <option value="{{ i.variation_value|lower }}">{{ i.variation_value|capfirst }}</option>
-                                            {% endfor %}
+                                        <h6>Gas Type</h6>
+                                        <select name="gas_type" class="form-control" required>
+                                          <option value="" disabled selected>Select</option>
+                                          {% for i in single_product.variation_set.all %}
+                                            {% if i.variation_category == "gas_type" %}
+                                              <option value="{{ i.variation_value|lower }}">{{ i.variation_value|capfirst }}</option>
+                                            {% endif %}
+                                          {% endfor %}
                                         </select>
                                     </div>
                                 </div>

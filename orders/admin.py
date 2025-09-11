@@ -44,7 +44,6 @@ class OrderAdmin(admin.ModelAdmin):
     list_per_page = 20
     inlines = [OrderProductInline]
 
-from django import forms
 
 # ... your other code like OrderProductInline and OrderAdmin ...
 

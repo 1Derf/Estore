@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import OrderForm
 from carts.models import Cart, CartItem
-from .models import Order, OrderProduct, Payment  # Assumed models
+from .models import Order, OrderProduct, Payment
 import datetime
 from decimal import Decimal
 from carts.utils import _cart_id  # Import for unauth handling (adjust if needed)

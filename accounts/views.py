@@ -1,6 +1,4 @@
-from lib2to3.fixes.fix_input import context
 from django.contrib.auth.decorators import login_required
-from django.contrib.messages import success
 from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.contrib import messages, auth
 from django.shortcuts import render, redirect, get_object_or_404
@@ -10,13 +8,12 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 from django.template.loader import render_to_string
 from django.core.mail import EmailMessage
-from carts.models import Cart, CartItem
 from carts.utils import _cart_id, migrate_cart_items
 from orders.models import Order, OrderProduct
 from .forms import RegistrationForm, UserForm, UserProfileForm
 from .models import Account, UserProfile
 import requests
-
+from django.urls import reverse
 
 def register(request):
     if request.method == 'POST':
@@ -73,38 +70,37 @@ def login(request):
     if request.method == 'POST':
         email = request.POST['email']
         password = request.POST['password']
-
         user = auth.authenticate(request, username=email, password=password)
-
         if user is not None:
-            auth.login(request, user) # Log the user in first
-
-            # --- THIS IS THE CRUCIAL CHANGE ---
-            # Call the dedicated cart migration function here
+            auth.login(request, user)
             migrate_cart_items(request, user)
-            # ----------------------------------
-
-            messages.success(request, 'You are now logged in !!')
+            messages.success(request, 'You are now logged in!')
             url = request.META.get('HTTP_REFERER')
             try:
                 query = requests.utils.urlparse(url).query
-                # next=/checkout
                 params = dict(x.split('=') for x in query.split('&'))
                 if 'next' in params:
                     nextPage = params['next']
+                    if user.is_staff and nextPage.startswith('/securelogin/'):
+                        return redirect(nextPage)  # Preserve next for admin
                     return redirect(nextPage)
             except:
+                if user.is_staff:
+                    return redirect('admin:index')  # Admin dashboard
                 return redirect('dashboard')
         else:
-            messages.error(request, 'Invalid login Credentials')
+            messages.error(request, 'Invalid login credentials.')
             return redirect('login')
     return render(request, 'accounts/login.html')
-
-@login_required(login_url= 'login')
+@login_required(login_url='login')
 def logout(request):
+    is_admin = request.user.is_staff
+    next_url = request.GET.get('next', '/dashboard/')
     auth.logout(request)
-    messages.success(request, 'You are logged Out!')
-    return redirect('login')
+    messages.success(request, 'You are logged out!')
+    if is_admin:
+        return redirect(f'{reverse("admin:login")}?next={next_url}')
+    return redirect(f'/accounts/login/?next={next_url}')
 
 
 def activate(request, uidb64, token):
@@ -220,7 +216,7 @@ def edit_profile(request):
         if user_form.is_valid() and profile_form.is_valid():
             user_form.save()
             profile_form.save()
-            messages.success(request, 'Your profile has been updated.')
+            messages.success(request, 'Your profile has been updated. Please use your new email to sign in.')
             return redirect('edit_profile')
     else:
         user_form = UserForm(instance=request.user)
@@ -230,7 +226,6 @@ def edit_profile(request):
         'profile_form': profile_form,
         'userprofile': userprofile,
     }
-
     return render(request, 'accounts/edit_profile.html', context)
 
 @login_required(login_url='login')
@@ -272,3 +267,15 @@ def order_detail(request, order_id):
         'subtotal': subtotal,
     }
     return render(request, 'accounts/order_detail.html', context)
+
+
+
+def custom_redirect(request):
+    next_url = request.GET.get('next', '')
+    if next_url and next_url.startswith('/securelogin/'):
+        return redirect(f'{reverse("admin:login")}?next={next_url}')
+    return redirect('/accounts/login/' + (f'?next={next_url}' if next_url else ''))
+
+
+def lockout(request):
+    return render(request, 'accounts/lockout.html', {'message': 'Too many failed login attempts. Try again later.'})

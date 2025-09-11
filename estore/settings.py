@@ -48,20 +48,33 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'axes.middleware.AxesMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'accounts.middleware.AdminLoginRedirectMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'accounts.middleware.BlockIPMiddleware',
     'django_session_timeout.middleware.SessionTimeoutMiddleware',
-]
+    'axes.middleware.AxesMiddleware',
 
-SESSION_EXPIRE_SECONDS = 3600  # 1 hour
+]
+# Authentication URLlss
+LOGIN_URL = '/accounts/login/'
+LOGOUT_REDIRECT_URL = '/custom_redirect/'
+SESSION_EXPIRE_SECONDS = 7200  # For testing; change to 3600 later
 SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
-SESSION_TIMEOUT_REDIRECT = 'securelogin/login'
+
+# Axes Settings
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 5
+AXES_RESET_ON_SUCCESS = True
+AXES_PROTECTED_URLS = ['/accounts/login/', '/securelogin/login/']
+AXES_LOCKOUT_URL = '/lockout/'
+AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']  # Track failures by username and IP
+AXES_COOLOFF_TIME = 0.5  # 30-minute lockout
+
 
 ROOT_URLCONF = 'estore.urls'
 

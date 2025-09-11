@@ -16,8 +16,8 @@
 {% endif %}  {# Proper endif here #}
 
 <!-- Review Content (always shown, even after success) -->
-<div class="row justify-content-center">  {# Added justify-content-center for overall centering #}
-    <div class="col-lg-8 mx-auto">  {# NEW: mx-auto centers this block under the success message #}
+<div class="row justify-content-center">  {#  justify-content-center for overall centering #}
+    <div class="col-lg-8 mx-auto">  {#  mx-auto centers this block under the success message #}
         <!-- UPDATED: Nested row for side-by-side billing and shipping -->
         <div class="row">
             <div class="col-lg-6">  {# Billing on left #}
@@ -68,7 +68,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in ordered_products %}  {# UPDATED: Loop over ordered_products #}
+                        {% for item in ordered_products %}  {#  Loop over ordered_products #}
                         <tr id="order-item-{{ item.id }}">
                             <td>
                                 <figure class="itemside align-items-center">
@@ -78,7 +78,7 @@
                                         <p class="text-muted small">
                                             {% if item.variations.all %}
                                                 {% for var in item.variations.all %}
-                                                    {{ var.variation_category | capfirst }} : {{ var.variation_value | capfirst }}<br>
+                                                    {{ var.get_variation_category_display }} : {{ var.variation_value|capfirst }}<br>
                                                 {% endfor %}
                                             {% endif %}
                                         </p>

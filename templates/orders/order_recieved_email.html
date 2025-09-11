@@ -71,7 +71,7 @@
                         {% if item.variations.all %}
                             <br>
                             {% for var in item.variations.all %}
-                                {{ var.variation_category|capfirst }}: {{ var.variation_value|capfirst }}<br>
+                                {{ var.get_variation_category_display }} : {{ var.variation_value|capfirst }}<br>
                             {% endfor %}
                         {% endif %}
                     </td>

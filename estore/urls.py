@@ -7,6 +7,7 @@ from .views import test_paypal, paypal_payment
 
 urlpatterns = [
     #path('admin/', include('admin_honeypot.urls', namespace='admin_honeypot')),
+    #path('securelogin/', admin.site.urls), #older
     path('securelogin/', admin.site.urls),
     path('', views.home, name='home'),
     path('store/', include('store.urls')),

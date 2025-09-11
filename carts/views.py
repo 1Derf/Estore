@@ -1,5 +1,7 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
+
+from accounts.models import UserProfile
 from store.models import Product, Variation, Wishlist
 from .models import CartItem, Cart
 from django.contrib.auth.decorators import login_required
@@ -223,8 +225,10 @@ def checkout(request, total=0, quantity=0, cart_items=None):
     try:
         tax = Decimal('0.00')
         grand_total = Decimal('0.00')
+        userprofile = None
         if request.user.is_authenticated:
             cart_items = CartItem.objects.filter(user=request.user, is_active=True)
+            userprofile = get_object_or_404(UserProfile, user=request.user)
         else:
             cart = Cart.objects.get(cart_id=_cart_id(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
@@ -238,5 +242,7 @@ def checkout(request, total=0, quantity=0, cart_items=None):
         'cart_items': cart_items,
         'tax': tax,
         'grand_total': grand_total,
+        'userprofile': userprofile,
+        'user': request.user if request.user.is_authenticated else None,
     }
     return render(request, 'store/checkout.html', context)

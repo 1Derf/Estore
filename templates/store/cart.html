@@ -35,7 +35,7 @@
                                                     <p class="text-muted small">
                                                         {% if cart_item.variations.all %}
                                                             {% for item in cart_item.variations.all %}
-                                                                {{ item.variation_category | capfirst }} : {{ item.variation_value | capfirst }}<br>
+                                                                {{ item.get_variation_category_display }} : {{ item.variation_value | capfirst }}<br>
                                                             {% endfor %}
                                                         {% endif %}
                                                     </p>
@@ -65,8 +65,8 @@
                                         </td>
                                         <td>
                                             <div class="price-wrap">
-                                                <var class="price">$ {{ cart_item.sub_total|floatformat:2 }}</var> {# UPDATED: Added |floatformat:2 #}
-                                                <small class="text-muted">$ {{ cart_item.product.price|floatformat:2 }} each </small> {# UPDATED: Added |floatformat:2 #}
+                                                <var class="price">$ {{ cart_item.sub_total|floatformat:2 }}</var> {#  Added |floatformat:2 #}
+                                                <small class="text-muted">$ {{ cart_item.product.price|floatformat:2 }} each </small> {#  Added |floatformat:2 #}
                                             </div> <!-- price-wrap .// -->
                                         </td>
                                         <td class="text-right">
@@ -84,11 +84,11 @@
                         <div class="card-body">
                             <dl class="dlist-align">
                                 <dt>Total price:</dt>
-                                <dd class="text-right">${{ total|floatformat:2 }}</dd> {# UPDATED: Added |floatformat:2 #}
+                                <dd class="text-right">${{ total|floatformat:2 }}</dd> {# floatformat:2 #}
                             </dl>
                             <dl class="dlist-align">
                                 <dt>Tax:</dt>
-                                <dd class="text-right"> ${{ tax|floatformat:2 }}</dd> {# UPDATED: Added |floatformat:2 #}
+                                <dd class="text-right"> ${{ tax|floatformat:2 }}</dd> {#  floatformat:2 #}
                             </dl>
                             <dl class="dlist-align">
                                 <dt>Grand Total:</dt>

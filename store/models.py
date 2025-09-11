@@ -2,7 +2,7 @@ from django.db import models
 from django.db.models import Avg, Count
 from django.urls import reverse
 from accounts.models import Account
-from django.contrib.auth.models import User
+
 
 # Create your models here.
 class Brand(models.Model):
@@ -35,7 +35,7 @@ class Product(models.Model):
     manufacturer_part_number = models.CharField(max_length=50, blank=True, null=True, unique=True, help_text="Manufacturer's part number (custom product ID)")
     gtin = models.CharField(max_length=14, blank=True, null=True, unique=True, help_text="Global Trade Item Number (13-14 digits)")
     upc_ean = models.CharField(max_length=13, blank=True, null=True, unique=True, help_text="UPC (12 digits) or EAN (13 digits)")
-    has_variants = models.BooleanField(default=False, help_text="Enable if this product has variants (e.g., size/color).")
+    has_variants = models.BooleanField(default=False, help_text="Enable if this product has variants (e.g., Gas Type).")
     warranty_text = models.TextField(blank=True, null=True, help_text="Warranty description text")
     warranty_file = models.FileField(upload_to='warranties/', blank=True, null=True, help_text="Upload warranty document (e.g., PDF)")
 
@@ -68,15 +68,30 @@ class ProductDownload(models.Model):
         return f"{self.title} for {self.product.product_name}"
 
 class VariationManager(models.Manager):
+    def get_queryset(self):
+        # Always return only active variations
+        return super().get_queryset().filter(is_active=True)
+
     def colors(self):
-        return super(VariationManager, self).filter(variation_category='color', is_active=True)
+        return self.get_queryset().filter(variation_category='color')
 
     def sizes(self):
-        return super(VariationManager, self).filter(variation_category='size', is_active=True)
+        return self.get_queryset().filter(variation_category='size')
+
+    def gas_types(self):
+        return self.get_queryset().filter(variation_category='gas_type')
 
 class Variation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variation_category = models.CharField(max_length=100, choices=(('color', 'color'), ('size', 'size')))
+    variation_category = models.CharField(
+        max_length=100,
+        choices=(
+            ('gas_type', 'Gas Type'),  # new
+            # optionally keep these if you don't want errors while transitioning
+            ('color', 'Color'),
+            ('size', 'Size'),
+        )
+    )
     variation_value = models.CharField(max_length=100)
     is_active = models.BooleanField(default=True)
     created_date = models.DateTimeField(auto_now=True)
