@@ -14,6 +14,10 @@ from .forms import RegistrationForm, UserForm, UserProfileForm
 from .models import Account, UserProfile
 import requests
 from django.urls import reverse
+from django.db.models import Prefetch
+
+
+
 
 def register(request):
     if request.method == 'POST':
@@ -87,11 +91,13 @@ def login(request):
             except:
                 if user.is_staff:
                     return redirect('admin:index')  # Admin dashboard
-                return redirect('dashboard')
+                return redirect('accounts/dashboard')
         else:
             messages.error(request, 'Invalid login credentials.')
             return redirect('login')
     return render(request, 'accounts/login.html')
+
+
 @login_required(login_url='login')
 def logout(request):
     is_admin = request.user.is_staff
@@ -119,19 +125,24 @@ def activate(request, uidb64, token):
         messages.error(request, 'Invalid activation link')
         return redirect('register')
 
-@login_required(login_url= 'login')
+@login_required(login_url='login')
 def dashboard(request):
-    orders = Order.objects.order_by('-created_at').filter(user_id=request.user.id, is_ordered=True)
+    orders = Order.objects.filter(
+        user=request.user
+    ).exclude(
+        status="New"   # hide only uninitiated orders
+    ).order_by('-created_at')
     orders_count = orders.count()
 
     try:
-        userprofile = UserProfile.objects.get(user_id=request.user.id)
+        userprofile = UserProfile.objects.get(user=request.user.id)
     except UserProfile.DoesNotExist:
         userprofile = UserProfile.objects.create(user=request.user)
+
     context = {
+        'orders': orders,          # 👉 add this so template can loop them
         'orders_count': orders_count,
         'userprofile': userprofile,
-
     }
     return render(request, 'accounts/dashboard.html', context)
 
@@ -201,7 +212,12 @@ def resetPassword(request):
 
 @login_required(login_url='login')
 def my_orders(request):
-    orders = Order.objects.filter(user=request.user, is_ordered=True).order_by('-created_at')
+    orders = Order.objects.filter(
+        user=request.user
+    ).exclude(
+        status="New"   # hide only brand new / incomplete orders
+    ).order_by('-created_at')
+
     context = {
         'orders': orders,
     }
@@ -255,11 +271,11 @@ def change_password(request):
 
 @login_required(login_url='login')
 def order_detail(request, order_id):
-    order_detail = OrderProduct.objects.filter(order__order_number=order_id)
-    order = Order.objects.get(order_number=order_id)
-    subtotal = 0
-    for i in order_detail:
-        subtotal += i.product_price * i.quantity
+    order = get_object_or_404(Order, order_number=order_id, user=request.user)
+
+    order_detail = OrderProduct.objects.filter(order=order)
+
+    subtotal = sum(i.product_price * i.quantity for i in order_detail)
 
     context = {
         'order_detail': order_detail,
@@ -267,7 +283,6 @@ def order_detail(request, order_id):
         'subtotal': subtotal,
     }
     return render(request, 'accounts/order_detail.html', context)
-
 
 
 def custom_redirect(request):

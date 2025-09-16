@@ -3,8 +3,9 @@ from django.db.models import Avg, Count
 from django.urls import reverse
 from accounts.models import Account
 
-
-# Create your models here.
+# -------------------------
+# Brand
+# -------------------------
 class Brand(models.Model):
     name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
@@ -20,6 +21,10 @@ class Brand(models.Model):
     def __str__(self):
         return self.name
 
+
+# -------------------------
+# Product
+# -------------------------
 class Product(models.Model):
     product_name = models.CharField(max_length=200, unique=True)
     slug = models.SlugField(max_length=200, unique=True)
@@ -59,6 +64,10 @@ class Product(models.Model):
             count = int(reviews['count'])
         return count
 
+
+# -------------------------
+# Downloads
+# -------------------------
 class ProductDownload(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='downloads')
     title = models.CharField(max_length=100, blank=True, default="Download", help_text="Title for the file (e.g., 'Product Catalog')")
@@ -67,45 +76,32 @@ class ProductDownload(models.Model):
     def __str__(self):
         return f"{self.title} for {self.product.product_name}"
 
-class VariationManager(models.Manager):
-    def get_queryset(self):
-        # Always return only active variations
-        return super().get_queryset().filter(is_active=True)
 
-    def colors(self):
-        return self.get_queryset().filter(variation_category='color')
+# -------------------------
+# Variations (NEW SYSTEM)
+# -------------------------
+class VariationCategory(models.Model):
+    name = models.CharField(max_length=100, unique=True)
 
-    def sizes(self):
-        return self.get_queryset().filter(variation_category='size')
+    def __str__(self):
+        return self.name
 
-    def gas_types(self):
-        return self.get_queryset().filter(variation_category='gas_type')
 
 class Variation(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    variation_category = models.CharField(
-        max_length=100,
-        choices=(
-            ('gas_type', 'Gas Type'),  # new
-            # optionally keep these if you don't want errors while transitioning
-            ('color', 'Color'),
-            ('size', 'Size'),
-        )
-    )
-    variation_value = models.CharField(max_length=100)
+    category = models.ForeignKey(VariationCategory, on_delete=models.SET_NULL, null=True, blank=True)
+    name = models.CharField(max_length=100, null=True, blank=True)
+    price_modifier = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     is_active = models.BooleanField(default=True)
-    created_date = models.DateTimeField(auto_now=True)
-    objects = VariationManager()
+    created_date = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.variation_value
+        return f"{self.category} : {self.name}"
 
-    class Meta:
-        indexes = [
-            models.Index(fields=['variation_category']),
-            models.Index(fields=['variation_value']),
-        ]
 
+# -------------------------
+# Reviews
+# -------------------------
 class ReviewRating(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
@@ -120,6 +116,10 @@ class ReviewRating(models.Model):
     def __str__(self):
         return self.subject
 
+
+# -------------------------
+# Galleries
+# -------------------------
 class ProductGallery(models.Model):
     product = models.ForeignKey(Product, default=None, on_delete=models.CASCADE)
     image = models.ImageField(upload_to='store/products/', max_length=255)
@@ -139,6 +139,10 @@ class ProductGallery(models.Model):
             self.order = last_order + 1
         super().save(*args, **kwargs)
 
+
+# -------------------------
+# Wishlist
+# -------------------------
 class Wishlist(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -147,7 +151,7 @@ class Wishlist(models.Model):
     quantity = models.PositiveIntegerField(default=1)  # New field for quantity
 
     def __str__(self):
-        variant_values = ", ".join([f"{v.variation_category}: {v.variation_value}" for v in self.variations.all()])
+        variant_values = ", ".join([f"{v.category}: {v.name}" for v in self.variations.all()])
         variants = f" ({variant_values})" if variant_values else ""
         return f"{self.user.username} - {self.product.product_name}{variants} (Qty: {self.quantity})"
 

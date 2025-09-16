@@ -1,76 +1,112 @@
-from paypalrestsdk import Payment
-from django.conf import settings  # To access settings like return/cancel URLs
-import paypalrestsdk
-from django.urls import reverse  # NEW: For dynamic URLs
+import requests
+from django.conf import settings
 
-def configure_paypal():
-    paypalrestsdk.configure({
-        "mode": "sandbox",  # or "live"
-        "client_id": "AUZRzHs2tulbf2ZOHph-zEYVRQUthud4_Zib0o37H11a4cp0kjk-7154VW4mg327I1_20XIDqJiuMuDs",  # Replace with actual (redacted for safety)
-        "client_secret": "EEE9gqD2GkRi0cjKDQ-f9g9RsCNuGOdcXoH-y8xZoqOZ8S3M1eSITQzHgaawUJ2_yzQO5Tncw1uNmscR"  # Replace with actual (redacted for safety)
-    })
+# Config
+CLIENT_ID = settings.PAYPAL_CLIENT_ID
+CLIENT_SECRET = settings.PAYPAL_CLIENT_SECRET
+BASE_URL = settings.PAYPAL_BASE_URL  # e.g. "https://api-m.sandbox.paypal.com"
 
-def create_paypal_payment(order, amount, request):
-    configure_paypal()  # NEW: Call configuration here to ensure it's set before API calls
 
-    # UPDATED: Use order object to get billing/shipping details
-    billing_address = {
-        "line1": order.address_line_1,
-        "line2": order.address_line_2 or "",
-        "city": order.city,
-        "state": order.state,
-        "postal_code": order.zip_code,
-        "country_code": order.country[:2].upper()  # e.g., "US" (assumes country is full name; adjust if needed)
-    }
+def _get_access_token():
+    """Retrieve OAuth2 access token from PayPal"""
+    url = f"{BASE_URL}/v1/oauth2/token"
+    resp = requests.post(
+        url,
+        headers={
+            "Accept": "application/json",
+            "Accept-Language": "en_US",
+        },
+        data={"grant_type": "client_credentials"},
+        auth=(CLIENT_ID, CLIENT_SECRET),
+    )
+    resp.raise_for_status()
+    return resp.json()["access_token"]
 
-    # Use shipping if populated; else fallback to billing
-    shipping_address = {
-        "recipient_name": f"{order.shipping_first_name} {order.shipping_last_name}" if order.shipping_first_name else order.full_name(),
-        "line1": order.shipping_address_line_1 or order.address_line_1,
-        "line2": order.shipping_address_line_2 or order.address_line_2 or "",
-        "city": order.shipping_city or order.city,
-        "state": order.shipping_state or order.state,
-        "postal_code": order.shipping_zip_code or order.zip_code,
-        "country_code": order.shipping_country[:2].upper() or order.country[:2].upper()
-    }
 
-    payment = paypalrestsdk.Payment({
-        "intent": "sale",
-        "payer": {
-            "payment_method": "paypal",
-            #  Add billing (payer) details for AVS and pre-fill
-            "payer_info": {
-                "email": order.email,
-                "first_name": order.first_name,
-                "last_name": order.last_name,
-                "billing_address": billing_address,
-               # "phone": order.phone,
+def create_paypal_order(order, amount, request):
+    """Create a PayPal order with intent=AUTHORIZE"""
+    access_token = _get_access_token()
+    url = f"{BASE_URL}/v2/checkout/orders"
+
+    payload = {
+        "intent": "AUTHORIZE",
+        "purchase_units": [
+            {
+                "reference_id": str(order.order_number),
+                "amount": {
+                    "currency_code": "USD",
+                    "value": str(amount),
+                },
+                "shipping": {
+                    "address": {
+                        "address_line_1": order.shipping_address_line_1 or order.address_line_1,
+                        "address_line_2": order.shipping_address_line_2 or order.address_line_2 or "",
+                        "admin_area_2": order.shipping_city or order.city,
+                        "admin_area_1": order.shipping_state or order.state,
+                        "postal_code": order.shipping_zip_code or order.zip_code,
+                        "country_code": (order.shipping_country or order.country)[:2].upper(),
+                    }
+                },
             }
+        ],
+        "application_context": {
+            "return_url": request.build_absolute_uri("/orders/paypal-return/"),
+            "cancel_url": request.build_absolute_uri("/orders/paypal-cancel/"),
+            "shipping_preference": "SET_PROVIDED_ADDRESS",
         },
-        "redirect_urls": {
-            "return_url": request.build_absolute_uri(reverse('paypal_return')),  # UPDATED: Dynamic URL using reverse
-            "cancel_url": request.build_absolute_uri(reverse('paypal_cancel'))   # UPDATED: Dynamic URL using reverse
+    }
+
+    r = requests.post(
+        url,
+        json=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
         },
-        "transactions": [{
-            "amount": {
-                "total": str(amount),
-                "currency": "USD"
-            },
-            "description": f"Payment for Order {order.order_number}",
-            #  Add shipping address for pre-fill and verification
-            "shipping_address": shipping_address
-        }]
-    })
-
-    if payment.create():
-        return payment  # Returns the payment object with links
-    else:
-        raise Exception(payment.error)  # Handle creation errors
+    )
+    r.raise_for_status()
+    return r.json()
 
 
-def execute_paypal_payment(payment_id, payer_id):
-    payment = paypalrestsdk.Payment.find(payment_id)
-    if payment.execute({"payer_id": payer_id}):
-        return payment  # Returns the executed payment object
-    else:
-        raise Exception(payment.error)  # Handle execution errors
+def get_paypal_order(order_id):
+    """Retrieve PayPal order details"""
+    access_token = _get_access_token()
+    url = f"{BASE_URL}/v2/checkout/orders/{order_id}"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    r = requests.get(url, headers=headers)
+    r.raise_for_status()
+    return r.json()
+
+
+def authorize_paypal_order(order_id):
+    """Explicitly authorize an approved order"""
+    access_token = _get_access_token()
+    url = f"{BASE_URL}/v2/checkout/orders/{order_id}/authorize"
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json",
+    }
+    # No body required
+    r = requests.post(url, headers=headers)
+    r.raise_for_status()
+    return r.json()
+
+
+def capture_paypal_payment(authorization_id, amount):
+    """Capture a previously authorized payment"""
+    access_token = _get_access_token()
+    url = f"{BASE_URL}/v2/payments/authorizations/{authorization_id}/capture"
+    payload = {
+        "amount": {"currency_code": "USD", "value": str(amount)},
+        "final_capture": True,
+    }
+    r = requests.post(
+        url,
+        json=payload,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {access_token}",
+        },
+    )
+    r.raise_for_status()
+    return r.json()

@@ -130,7 +130,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.1/topics/i18n/
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+TIME_ZONE = "America/Phoenix"
 USE_I18N = True
 USE_L10N = True
 USE_TZ = True
@@ -168,10 +168,16 @@ DEFAULT_FROM_EMAIL = config('EMAIL_HOST_USER')
 
 # PayPal Settings
 PAYPAL_API_MODE = 'sandbox'
-PAYPAL_CLIENT_ID = 'AUZRzHs2tulbf2ZOHph-zEYVRQUthud4_Zib0o37H11a4cp0kjk-7154VW4mg327I1_20XIDqJiuMuDs'
-PAYPAL_CLIENT_SECRET = 'EEE9gqD2GkRi0cjKDQ-f9g9RsCNuGOdcXoH-y8xZoqOZ8S3M1eSITQzHgaawUJ2_yzQO5Tncw1uNmscR'
-PAYPAL_RETURN_URL = 'http://127.0.0.1:8000/orders/paypal-return/'
-PAYPAL_CANCEL_URL = 'http://127.0.0.1:8000/orders/paypal-cancel/'
+
+PAYPAL_CLIENT_ID = config('PAYPAL_CLIENT_ID')
+PAYPAL_CLIENT_SECRET = config('PAYPAL_CLIENT_SECRET')
+PAYPAL_RETURN_URL = config('PAYPAL_RETURN_URL')
+PAYPAL_CANCEL_URL = config('PAYPAL_CANCEL_URL')
+
+if PAYPAL_API_MODE == "sandbox":
+    PAYPAL_BASE_URL = "https://api-m.sandbox.paypal.com"
+else:
+    PAYPAL_BASE_URL = "https://api-m.paypal.com"
 
 # Axes settings
 AXES_FAILURE_LIMIT = 5

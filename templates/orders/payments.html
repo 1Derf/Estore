@@ -1,33 +1,43 @@
 {% extends 'base.html' %}
 
 {% load static %}
-
+{% load static cart_extras %}
 {% block content %}
 <section class="section-content padding-y bg">
 <div class="container">
 
 <!-- ============================ COMPONENT 1 ================================= -->
 
-
 {% if order.is_ordered %}
     <h2 class="text-center text-success">Order Completed Successfully!</h2>
-    <p class="text-center">Thank you for your purchase. Your order number is <strong class="fs-5">{{ order.order_number }}</strong>.</p>
-    <p class="text-center text-muted">Your order details below for reference.</p>  {# NEW: Note to show details post-success #}
-{% endif %}  {# Proper endif here #}
+    <p class="text-center">
+        Thank you for your purchase. Your order number is
+        <strong class="fs-5">{{ order.order_number }}</strong>.
+    </p>
+    <p class="text-center text-muted">Your order details below for reference.</p>
+{% elif order.status == "AUTHORIZED" %}
+    <h2 class="text-center text-success">Order Authorized Successfully!</h2>
+    <p class="text-center">
+        Thank you for your purchase. Your order number is
+        <strong class="fs-5">{{ order.order_number }}</strong>.
+    </p>
+    <p class="text-center text-muted">
+        Payment has been authorized. We will capture funds when processing your order.
+    </p>
+{% endif %}
 
-<!-- Review Content (always shown, even after success) -->
-<div class="row justify-content-center">  {#  justify-content-center for overall centering #}
-    <div class="col-lg-8 mx-auto">  {#  mx-auto centers this block under the success message #}
-        <!-- UPDATED: Nested row for side-by-side billing and shipping -->
+<!-- Review Content -->
+<div class="row justify-content-center">
+    <div class="col-lg-8 mx-auto">
+        <!-- Billing + Shipping -->
         <div class="row">
-            <div class="col-lg-6">  {# Billing on left #}
+            <div class="col-lg-6">
                 <div class="card">
                     <h5 class="card-header">Billing Address</h5>
                     <div class="card-body">
                         <p class="card-text mb-0">{{ order.full_name }}</p>
                         <p class="card-text mb-0">{{ order.full_address }}</p>
-                        <p class="card-text mb-0">{{ order.city }}, {{ order.state }} {{ order.zip_code }}</p>  {# Added zip #}
-                        <p class="card-text mb-0">{{ order.country }}</p>
+                        <p class="card-text mb-0">{{ order.city }}, {{ order.state }} {{ order.zip_code }} {{ order.country }}</p>
                         <p class="card-text mb-0">{{ order.email }}</p>
                         <p class="card-text mb-0">{{ order.phone }}</p>
                         {% if order.order_note %}
@@ -36,27 +46,27 @@
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">  {# Shipping on right #}
+            <div class="col-lg-6">
                 <div class="card">
                     <h5 class="card-header">Shipping Address</h5>
                     <div class="card-body">
                         {% if order.shipping_first_name %}
                             <p class="card-text mb-0">{{ order.shipping_first_name }} {{ order.shipping_last_name }}</p>
-                            <p class="card-text mb-0">{{ order.shipping_address_line_1 }}{% if order.shipping_address_line_2 %}, {{ order.shipping_address_line_2 }}{% endif %}</p>
-                            <p class="card-text mb-0">{{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_zip_code }}</p>
-                            <p class="card-text mb-0">{{ order.shipping_country }}</p>
+                            <p class="card-text mb-0">
+                                {{ order.shipping_address_line_1 }}{% if order.shipping_address_line_2 %}, {{ order.shipping_address_line_2 }}{% endif %}</p>
+                            <p class="card-text mb-0">{{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_zip_code }} {{ order.shipping_country }} {{ order.shipping_country }} </p>
                             <p class="card-text mb-0">{{ order.shipping_email }}</p>
                             <p class="card-text mb-0">{{ order.shipping_phone }}</p>
                         {% else %}
-                            <p class="card-text mb-0">Same as billing address.</p>
+
                         {% endif %}
                     </div>
                 </div>
             </div>
-        </div>  {# End nested row #}
+        </div>
 
-        <!-- NEW: Review Products with Nested Totals -->
-        <div class="card mt-3">  {# Review Products Card (container box) #}
+        <!-- Review Products -->
+        <div class="card mt-3">
             <h5 class="card-header">Review Products</h5>
             <div class="card-body">
                 <table class="table table-borderless table-shopping-cart">
@@ -64,21 +74,27 @@
                         <tr class="small text-uppercase">
                             <th scope="col">Product</th>
                             <th scope="col">Quantity</th>
-                            <th scope="col" class="text-right">Price</th>  {# Right-aligned for totals alignment #}
+                            <th scope="col" class="text-right">Price</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in ordered_products %}  {#  Loop over ordered_products #}
+                        {% for item in ordered_products %}
                         <tr id="order-item-{{ item.id }}">
                             <td>
                                 <figure class="itemside align-items-center">
-                                    <div class="aside"><img src="{{ item.product.images.url }}" class="img-sm"></div>
+                                    <div class="aside">
+                                        <img src="{{ item.product.images.url }}" class="img-sm">
+                                    </div>
                                     <figcaption class="info">
                                         <a href="{{ item.product.get_url }}" class="title text-dark">{{ item.product.product_name }}</a>
                                         <p class="text-muted small">
                                             {% if item.variations.all %}
                                                 {% for var in item.variations.all %}
-                                                    {{ var.get_variation_category_display }} : {{ var.variation_value|capfirst }}<br>
+                                                    {{ var.category.name }} : {{ var.name }}
+                                                    {% if var.price_modifier and var.price_modifier > 0 %}
+                                                        (+${{ var.price_modifier }})
+                                                    {% endif %}
+                                                    <br>
                                                 {% endfor %}
                                             {% endif %}
                                         </p>
@@ -90,50 +106,53 @@
                                     <span class="b text-muted">{{ item.quantity }}</span>
                                 </div>
                             </td>
-                            <td class="text-right">  {# Right-aligned price column #}
+                            <td class="text-right">
                                 <div class="price-wrap">
-                                    <var class="price item-subtotal" id="item-subtotal-{{ item.id }}">$ {{ item.sub_total|floatformat:2 }}</var>  {# Strong subtotal (price * quantity) #}
-                                    <small class="text-muted">$ {{ item.product_price|floatformat:2 }} each </small>  {# Muted unit price (future: retail) #}
-                                </div> <!-- price-wrap .// -->
+                                    <var class="price item-subtotal" id="item-subtotal-{{ item.id }}">
+                                        $ {{ item.sub_total|floatformat:2 }}
+                                    </var>
+                                    <small class="text-muted">
+                                        $ {{ item.product_price|floatformat:2 }} each
+                                    </small>
+                                </div>
                             </td>
                         </tr>
                         {% empty %}
-                            <tr><td colspan="3">No products in this order.</td></tr>  {# Adjusted colspan #}
+                            <tr><td colspan="3">No products in this order.</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
 
-                <!-- NEW: Nested Totals (lower right, aligned under price column) -->
-                <div class="totals-box" style="float: right; text-align: right; width: 30%; margin-top: 20px;">  {# Float right, width to match price column, margin for spacing #}
+                <!-- Totals -->
+                <div class="totals-box" style="float: right; text-align: right; width: 30%; margin-top: 20px;">
                     <dl class="dlist-align">
                         <dt>Total price:</dt>
-                        <dd>${{ total|floatformat:2 }}</dd>  {# UPDATED: Added |floatformat:2 #}
+                        <dd>${{ total|floatformat:2 }}</dd>
                     </dl>
                     <dl class="dlist-align">
                         <dt>Tax:</dt>
-                        <dd>${{ tax|floatformat:2 }}</dd>  {# UPDATED: Added |floatformat:2 #}
+                        <dd>${{ tax|floatformat:2 }}</dd>
                     </dl>
                     <dl class="dlist-align">
                         <dt>Grand Total:</dt>
-                        <dd class="text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>  {# UPDATED: Added |floatformat:2 #}
+                        <dd class="text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>
                     </dl>
                 </div>
-                <!-- Clear float to prevent layout issues -->
                 <div style="clear: both;"></div>
-            </div>  {# End card-body #}
-        </div>  {# End Review Products Card #}
+            </div>
+        </div>
 
-        <!-- NEW: Payment Method (moved below Review Products) -->
-        <div class="card mt-3">  {# Added mt-3 for spacing #}
+        <!-- Payment Method -->
+        <div class="card mt-3">
             <h5 class="card-header">Payment Method</h5>
             <div class="card-body">
                 <p class="card-text">PayPal</p>
             </div>
         </div>
-    </div>  {# End centered col-lg-8 #}
-</div>  {# End row #}
+    </div>
+</div>
 
-</div> <!-- container .//  -->
+</div>
 </section>
 <!-- ========================= SECTION CONTENT END// ========================= -->
 

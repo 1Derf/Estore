@@ -10,7 +10,6 @@ from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
-from django.views.generic import DetailView
 
 
 def store(request, category_slug=None):
@@ -34,10 +33,11 @@ def store(request, category_slug=None):
     }
     return render(request, 'store/store.html', context)
 
-
 def product_detail(request, category_slug, product_slug):
     single_product = get_object_or_404(Product, category__slug=category_slug, slug=product_slug)
     in_cart = CartItem.objects.filter(cart__cart_id=_cart_id(request), product=single_product).exists()
+    product = Product.objects.get(category__slug=category_slug, slug=product_slug)
+    variations = Variation.objects.filter(product=product, is_active=True)
 
     if request.user.is_authenticated:
         try:
@@ -50,8 +50,20 @@ def product_detail(request, category_slug, product_slug):
     reviews = ReviewRating.objects.filter(product_id=single_product.id, status=True)
     product_gallery = ProductGallery.objects.filter(product_id=single_product.id)
     product_downloads = ProductDownload.objects.filter(product=single_product)
-
     viewed_products = request.session.get('viewed_products', [])
+
+    # Group variations by category
+    variation_data = {}
+    for v in variations:
+        category_name = v.category.name if v.category else "Other"
+        if category_name not in variation_data:
+            variation_data[category_name] = []
+        variation_data[category_name].append({
+            'id': v.id,
+            'value': v.name,
+            'price_modifier': float(v.price_modifier),
+        })
+
     if single_product.id not in viewed_products:
         viewed_products.insert(0, single_product.id)
         if len(viewed_products) > 5:
@@ -65,6 +77,7 @@ def product_detail(request, category_slug, product_slug):
         'reviews': reviews,
         'product_gallery': product_gallery,
         'product_downloads': product_downloads,
+        'variation_data': variation_data,
     }
     return render(request, 'store/product_detail.html', context)
 

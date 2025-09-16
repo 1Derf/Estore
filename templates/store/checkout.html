@@ -1,18 +1,18 @@
 {% extends 'base.html' %}
 {% load static %}
-
+{% load static cart_extras %}
 {% block content %}
 <section class="section-content padding-y bg">
     <div class="container">
-        <!-- ============================ COMPONENT 1 ================================= -->
         <div class="row">
             <aside class="col-lg-6">
-                {# Billing and Shipping in one column #}
+                <!-- Billing & Shipping -->
                 <div class="card">
                     <div class="card-body">
                         <h4 class="card-title mb-4">Billing Address</h4>
                         <form id="billingForm" action="{% url 'place_order' %}" method="POST">
                             {% csrf_token %}
+                            <!-- === BILLING FIELDS (same as original) === -->
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="first_name">First Name</label>
@@ -121,96 +121,98 @@
                             </div>
                             <h4 class="card-title mb-4 mt-5">Shipping Address</h4>
                             <div class="form-group">
-                                <input type="checkbox" id="sameAsBilling" checked>
+                                <input type="checkbox" id="sameAsBilling">
                                 <label for="sameAsBilling">Shipping address is the same as billing</label>
                             </div>
+                            <!-- === SHIPPING FIELDS (same as original) === -->
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="shipping_first_name">First Name</label>
-                                    <input type="text" name="shipping_first_name" id="shipping_first_name" class="form-control" value="{{ user.first_name|default_if_none:'' }}" required>
+                                    <input type="text" name="shipping_first_name" id="shipping_first_name" class="form-control" value="" required>
                                 </div>
                                 <div class="col form-group">
                                     <label for="shipping_last_name">Last Name</label>
-                                    <input type="text" name="shipping_last_name" id="shipping_last_name" class="form-control" value="{{ user.last_name|default_if_none:'' }}" required>
+                                    <input type="text" name="shipping_last_name" id="shipping_last_name" class="form-control" value="" required>
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="shipping_email">Email</label>
-                                    <input type="email" name="shipping_email" id="shipping_email" class="form-control" value="{{ user.email|default_if_none:'' }}" required>
+                                    <input type="email" name="shipping_email" id="shipping_email" class="form-control" value="" required>
                                 </div>
                                 <div class="col form-group">
                                     <label for="shipping_phone">Phone Number</label>
-                                    <input type="text" name="shipping_phone" id="shipping_phone" class="form-control" value="{% if userprofile.phone_number %}{{ userprofile.phone_number|default_if_none:'' }}{% else %}{{ user.phone_number|default_if_none:'' }}{% endif %}" required maxlength="12">
+                                    <input type="text" name="shipping_phone" id="shipping_phone" class="form-control" value="" required maxlength="12">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="shipping_address_line_1">Address Line 1</label>
-                                    <input type="text" name="shipping_address_line_1" id="shipping_address_line_1" class="form-control" value="{{ userprofile.address_line_1|default_if_none:'' }}" required>
+                                    <input type="text" name="shipping_address_line_1" id="shipping_address_line_1" class="form-control" value="" required>
                                 </div>
                                 <div class="col form-group">
                                     <label for="shipping_address_line_2">Address Line 2</label>
-                                    <input type="text" name="shipping_address_line_2" id="shipping_address_line_2" class="form-control" value="{{ userprofile.address_line_2|default_if_none:'' }}">
+                                    <input type="text" name="shipping_address_line_2" id="shipping_address_line_2" class="form-control" value="">
                                 </div>
                             </div>
                             <div class="form-row">
                                 <div class="col form-group">
                                     <label for="shipping_city">City</label>
-                                    <input type="text" name="shipping_city" id="shipping_city" class="form-control" value="{{ userprofile.city|default_if_none:'' }}" required>
+                                    <input type="text" name="shipping_city" id="shipping_city" class="form-control" value="" required>
                                 </div>
                                 <div class="col form-group">
                                     <label for="shipping_state">State</label>
                                     <select name="shipping_state" id="shipping_state" class="form-control" required>
                                         <option value="" disabled {% if not userprofile.state %}selected{% endif %}>Select State</option>
-                                        <option value="AL" {% if userprofile.state == 'AL' %}selected{% endif %}>Alabama</option>
-                                        <option value="AZ" {% if userprofile.state == 'AZ' %}selected{% endif %}>Arizona</option>
-                                        <option value="AR" {% if userprofile.state == 'AR' %}selected{% endif %}>Arkansas</option>
-                                        <option value="CA" {% if userprofile.state == 'CA' %}selected{% endif %}>California</option>
-                                        <option value="CO" {% if userprofile.state == 'CO' %}selected{% endif %}>Colorado</option>
-                                        <option value="CT" {% if userprofile.state == 'CT' %}selected{% endif %}>Connecticut</option>
-                                        <option value="DE" {% if userprofile.state == 'DE' %}selected{% endif %}>Delaware</option>
-                                        <option value="FL" {% if userprofile.state == 'FL' %}selected{% endif %}>Florida</option>
-                                        <option value="GA" {% if userprofile.state == 'GA' %}selected{% endif %}>Georgia</option>
-                                        <option value="ID" {% if userprofile.state == 'ID' %}selected{% endif %}>Idaho</option>
-                                        <option value="IL" {% if userprofile.state == 'IL' %}selected{% endif %}>Illinois</option>
-                                        <option value="IN" {% if userprofile.state == 'IN' %}selected{% endif %}>Indiana</option>
-                                        <option value="IA" {% if userprofile.state == 'IA' %}selected{% endif %}>Iowa</option>
-                                        <option value="KS" {% if userprofile.state == 'KS' %}selected{% endif %}>Kansas</option>
-                                        <option value="KY" {% if userprofile.state == 'KY' %}selected{% endif %}>Kentucky</option>
-                                        <option value="LA" {% if userprofile.state == 'LA' %}selected{% endif %}>Louisiana</option>
-                                        <option value="ME" {% if userprofile.state == 'ME' %}selected{% endif %}>Maine</option>
-                                        <option value="MD" {% if userprofile.state == 'MD' %}selected{% endif %}>Maryland</option>
-                                        <option value="MA" {% if userprofile.state == 'MA' %}selected{% endif %}>Massachusetts</option>
-                                        <option value="MI" {% if userprofile.state == 'MI' %}selected{% endif %}>Michigan</option>
-                                        <option value="MN" {% if userprofile.state == 'MN' %}selected{% endif %}>Minnesota</option>
-                                        <option value="MS" {% if userprofile.state == 'MS' %}selected{% endif %}>Mississippi</option>
-                                        <option value="MO" {% if userprofile.state == 'MO' %}selected{% endif %}>Missouri</option>
-                                        <option value="MT" {% if userprofile.state == 'MT' %}selected{% endif %}>Montana</option>
-                                        <option value="NE" {% if userprofile.state == 'NE' %}selected{% endif %}>Nebraska</option>
-                                        <option value="NV" {% if userprofile.state == 'NV' %}selected{% endif %}>Nevada</option>
-                                        <option value="NH" {% if userprofile.state == 'NH' %}selected{% endif %}>New Hampshire</option>
-                                        <option value="NJ" {% if userprofile.state == 'NJ' %}selected{% endif %}>New Jersey</option>
-                                        <option value="NM" {% if userprofile.state == 'NM' %}selected{% endif %}>New Mexico</option>
-                                        <option value="NY" {% if userprofile.state == 'NY' %}selected{% endif %}>New York</option>
-                                        <option value="NC" {% if userprofile.state == 'NC' %}selected{% endif %}>North Carolina</option>
-                                        <option value="ND" {% if userprofile.state == 'ND' %}selected{% endif %}>North Dakota</option>
-                                        <option value="OH" {% if userprofile.state == 'OH' %}selected{% endif %}>Ohio</option>
-                                        <option value="OK" {% if userprofile.state == 'OK' %}selected{% endif %}>Oklahoma</option>
-                                        <option value="OR" {% if userprofile.state == 'OR' %}selected{% endif %}>Oregon</option>
-                                        <option value="PA" {% if userprofile.state == 'PA' %}selected{% endif %}>Pennsylvania</option>
-                                        <option value="RI" {% if userprofile.state == 'RI' %}selected{% endif %}>Rhode Island</option>
-                                        <option value="SC" {% if userprofile.state == 'SC' %}selected{% endif %}>South Carolina</option>
-                                        <option value="SD" {% if userprofile.state == 'SD' %}selected{% endif %}>South Dakota</option>
-                                        <option value="TN" {% if userprofile.state == 'TN' %}selected{% endif %}>Tennessee</option>
-                                        <option value="TX" {% if userprofile.state == 'TX' %}selected{% endif %}>Texas</option>
-                                        <option value="UT" {% if userprofile.state == 'UT' %}selected{% endif %}>Utah</option>
-                                        <option value="VT" {% if userprofile.state == 'VT' %}selected{% endif %}>Vermont</option>
-                                        <option value="VA" {% if userprofile.state == 'VA' %}selected{% endif %}>Virginia</option>
-                                        <option value="WA" {% if userprofile.state == 'WA' %}selected{% endif %}>Washington</option>
-                                        <option value="WV" {% if userprofile.state == 'WV' %}selected{% endif %}>West Virginia</option>
-                                        <option value="WI" {% if userprofile.state == 'WI' %}selected{% endif %}>Wisconsin</option>
-                                        <option value="WY" {% if userprofile.state == 'WY' %}selected{% endif %}>Wyoming</option>
+                                        <option value="" selected disabled>Select</option>
+                                        <option value="AL" >Alabama</option>
+                                        <option value="AZ" >Arizona</option>
+                                        <option value="AR" >Arkansas</option>
+                                        <option value="CA" >California</option>
+                                        <option value="CO" >Colorado</option>
+                                        <option value="CT" >Connecticut</option>
+                                        <option value="DE" >Delaware</option>
+                                        <option value="FL" >Florida</option>
+                                        <option value="GA" >Georgia</option>
+                                        <option value="ID" >Idaho</option>
+                                        <option value="IL" >Illinois</option>
+                                        <option value="IN" >Indiana</option>
+                                        <option value="IA" >Iowa</option>
+                                        <option value="KS" >Kansas</option>
+                                        <option value="KY" >Kentucky</option>
+                                        <option value="LA" >Louisiana</option>
+                                        <option value="ME" >Maine</option>
+                                        <option value="MD" >Maryland</option>
+                                        <option value="MA" >Massachusetts</option>
+                                        <option value="MI" >Michigan</option>
+                                        <option value="MN" >Minnesota</option>
+                                        <option value="MS" >Mississippi</option>
+                                        <option value="MO" >Missouri</option>
+                                        <option value="MT" >Montana</option>
+                                        <option value="NE" >Nebraska</option>
+                                        <option value="NV" >Nevada</option>
+                                        <option value="NH" >New Hampshire</option>
+                                        <option value="NJ" >New Jersey</option>
+                                        <option value="NM" >New Mexico</option>
+                                        <option value="NY" >New York</option>
+                                        <option value="NC" >North Carolina</option>
+                                        <option value="ND" >North Dakota</option>
+                                        <option value="OH" >Ohio</option>
+                                        <option value="OK" >Oklahoma</option>
+                                        <option value="OR" >Oregon</option>
+                                        <option value="PA" >Pennsylvania</option>
+                                        <option value="RI" >Rhode Island</option>
+                                        <option value="SC" >South Carolina</option>
+                                        <option value="SD" >South Dakota</option>
+                                        <option value="TN" >Tennessee</option>
+                                        <option value="TX" >Texas</option>
+                                        <option value="UT" >Utah</option>
+                                        <option value="VT" >Vermont</option>
+                                        <option value="VA" >Virginia</option>
+                                        <option value="WA" >Washington</option>
+                                        <option value="WV" >West Virginia</option>
+                                        <option value="WI" >Wisconsin</option>
+                                        <option value="WY" >Wyoming</option>
                                     </select>
                                 </div>
                             </div>
@@ -223,13 +225,14 @@
                                 </div>
                                 <div class="col form-group">
                                     <label for="shipping_zip_code">Zip Code</label>
-                                    <input type="text" name="shipping_zip_code" id="shipping_zip_code" class="form-control" value="{{ userprofile.zip_code|default_if_none:'' }}" required>
+                                    <input type="text" name="shipping_zip_code" id="shipping_zip_code" class="form-control" value="" required>
                                 </div>
                             </div>
                         </form>
                     </div>
                 </div>
             </aside>
+
             <aside class="col-lg-6">
                 <div class="card">
                     <div class="card-body">
@@ -237,10 +240,10 @@
                         <table class="table table-borderless table-shopping-cart">
                             <thead class="text-muted">
                                 <tr class="small text-uppercase">
-                                    <th scope="col">Product</th>
-                                    <th scope="col">Quantity</th>
-                                    <th scope="col">Price</th>
-                                    <th scope="col" class="text-right"> </th>
+                                    <th scope="col" style="width:55%">Product</th>
+                                    <th scope="col" style="width:15%">Qty</th>
+                                    <th scope="col" style="width:20%" class="text-center">Price</th>
+                                    <th scope="col" style="width:5%"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -252,24 +255,24 @@
                                                 <figcaption class="info">
                                                     <a href="{{ cart_item.product.get_url }}" class="title text-dark">{{ cart_item.product.product_name }}</a>
                                                     <p class="text-muted small">
-                                                        {% if cart_item.variations.all %}
-                                                            {% for item in cart_item.variations.all %}
-                                                                {{ item.get_variation_category_display }} : {{ item.variation_value | capfirst }}<br>
-                                                            {% endfor %}
-                                                        {% endif %}
+                                                        {% for item in cart_item.variations.all %}
+                                                            {{ item.category.name }} : {{ item.name }}
+                                                            {% if item.price_modifier and item.price_modifier > 0 %}
+                                                                (+${{ item.price_modifier }})
+                                                            {% endif %}
+                                                            <br>
+                                                        {% endfor %}
                                                     </p>
                                                 </figcaption>
                                             </figure>
                                         </td>
-                                        <td>
-                                            <div class="text-center">
-                                                <span class="b text-muted">{{ cart_item.quantity }}</span>
-                                            </div>
+                                        <td class="text-center">
+                                            <span class="b text-muted">{{ cart_item.quantity }}</span>
                                         </td>
                                         <td>
-                                            <div class="price-wrap" style="white-space: nowrap;">
-                                                <var class="price item-subtotal" id="item-subtotal-{{ cart_item.id }}">$ {{ cart_item.sub_total|floatformat:2 }}</var>
-                                                <small class="text-muted">$ {{ cart_item.product.price|floatformat:2 }} each</small>
+                                            <div class="price-wrap">
+                                                <var class="price">$ {{ cart_item.sub_total|floatformat:2 }}</var>
+                                                <small class="text-muted">$ {{ cart_item.sub_total|divided_by:cart_item.quantity|floatformat:2 }} each</small>
                                             </div>
                                         </td>
                                         <td></td>
@@ -277,31 +280,34 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+
                         <dl class="dlist-align">
-                            <dt>Total price:</dt>
-                            <dd class="text-right" id="cart-total">${{ total|floatformat:2 }}</dd>
+                            <dt>Total Price:</dt>
+                            <dd class="text-right">${{ total|floatformat:2 }}</dd>
                         </dl>
                         <dl class="dlist-align">
                             <dt>Tax:</dt>
-                            <dd class="text-right" id="cart-tax"> ${{ tax|floatformat:2 }}</dd>
+                            <dd class="text-right">${{ tax|floatformat:2 }}</dd>
                         </dl>
                         <dl class="dlist-align">
                             <dt>Grand Total:</dt>
-                            <dd class="text-right text-dark b" id="cart-grand-total"><strong>${{ grand_total|floatformat:2 }}</strong></dd>
+                            <dd class="text-right text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>
                         </dl>
                         <hr>
                         <p class="text-center mb-3">
                             <img src="{% static './images/misc/payments.png' %}" height="26">
                         </p>
-                        <button type="submit" form="billingForm" name="submit" class="btn btn-secondary btn-block mb-2">Pay with Credit Card </button>
-                        <button type="submit" form="billingForm" name="submit" class="btn btn-primary btn-block mb-2">Pay with PayPal</button>
-                        <p class="text-muted small text-center">You'll be redirected to PayPal to complete your payment securely (credit card option available as guest checkout).</p>
+                        <button type="submit" form="billingForm" class="btn btn-secondary btn-block mb-2">Pay with Credit Card</button>
+                        <button type="submit" form="billingForm" class="btn btn-primary btn-block mb-2">Pay with PayPal</button>
+                        <p class="text-muted small text-center">You'll be redirected to PayPal to complete your payment securely.</p>
                         <a href="{% url 'store:store' %}" class="btn btn-light btn-block">Continue Shopping</a>
                     </div>
                 </div>
             </aside>
         </div>
-    </section>
+    </div>
+</section>
+{% endblock %}
 {% block scripts %}
 <script>
 function copyBillingToShipping() {
@@ -326,28 +332,6 @@ function copyBillingToShipping() {
                 shippingElem.value = billingElem.value || '';
             }
         });
-    } else if (checkbox) {
-        var shippingIds = [
-            'shipping_first_name',
-            'shipping_last_name',
-            'shipping_email',
-            'shipping_phone',
-            'shipping_address_line_1',
-            'shipping_address_line_2',
-            'shipping_city',
-            'shipping_state',
-            'shipping_country',
-            'shipping_zip_code'
-        ];
-        shippingIds.forEach(function(id) {
-            var elem = document.getElementById(id);
-            if (elem) {
-                elem.value = '';
-                if (elem.tagName === 'SELECT') {
-                    elem.selectedIndex = 0;
-                }
-            }
-        });
     }
 }
 function formatPhone(input) {
@@ -360,9 +344,9 @@ function formatPhone(input) {
     }
     input.value = value;
 }
-function capitalizeCity(input) {
-    input.value = input.value.replace(/\w\S*/g, function(txt) {
-        return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+function capitalizeInput(input) {
+    input.value = input.value.replace(/\b\w/g, function(txt) {
+        return txt.toUpperCase();
     });
 }
 document.addEventListener('DOMContentLoaded', function() {
@@ -379,21 +363,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     copyBillingToShipping();
                 }
             });
-            if (elem.tagName === 'SELECT') {
-                elem.addEventListener('change', function() {
-                    if (document.getElementById('sameAsBilling').checked) {
-                        copyBillingToShipping();
-                    }
-                });
-            }
         }
     });
-    var cityFields = ['city', 'shipping_city'];
-    cityFields.forEach(function(id) {
+    var capitalizeFields = ['city', 'shipping_city', 'first_name', 'last_name', 'shipping_first_name', 'shipping_last_name'];
+    capitalizeFields.forEach(function(id) {
         var elem = document.getElementById(id);
         if (elem) {
-            elem.addEventListener('input', function() {
-                capitalizeCity(this);
+            elem.addEventListener('blur', function() {
+                capitalizeInput(this);
             });
         }
     });
@@ -407,6 +384,5 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
-    {% endblock %}
 </script>
 {% endblock %}

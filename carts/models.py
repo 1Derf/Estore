@@ -3,7 +3,9 @@ from accounts.models import Account
 from store.models import Product, Variation
 
 
-# Create your models here.
+# --------------------------
+# Cart
+# --------------------------
 class Cart(models.Model):
     cart_id = models.CharField(max_length=250, blank=True)
     date_added = models.DateField(auto_now_add=True)
@@ -12,6 +14,9 @@ class Cart(models.Model):
         return self.cart_id
 
 
+# --------------------------
+# Cart Item
+# --------------------------
 class CartItem(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE, null=True)
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
@@ -20,8 +25,17 @@ class CartItem(models.Model):
     quantity = models.IntegerField()
     is_active = models.BooleanField(default=True)
 
+
     def sub_total(self):
-        return self.product.price * self.quantity
+        """
+        Base price + modifiers from all selected variations * quantity
+        """
+        base_price = self.product.price
+        extra = sum(v.price_modifier for v in self.variations.all())
+        return (base_price + extra) * self.quantity
 
     def __unicode__(self):
-        return self.product
+        return self.product.product_name
+
+    def __str__(self):
+        return f"{self.product.product_name} (x{self.quantity})"
