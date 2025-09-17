@@ -1,6 +1,6 @@
 from django.contrib import admin, messages
 from django import forms
-from .models import Payment, Order, OrderProduct
+from .models import Payment, Order, OrderProduct, PayPalWebhookLog
 from .paypal_utils import capture_paypal_payment   # <-- import our helper
 
 
@@ -42,51 +42,74 @@ class OrderProductForm(forms.ModelForm):
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = [
-        'order_number', 'full_name', 'phone', 'email', 'city',
-        'order_total', 'tax', 'status', 'is_ordered', 'created_at'
+        "order_number", "full_name", "phone", "email", "city",
+        "order_total", "tax", "status", "is_ordered", "created_at"
     ]
-    list_filter = ['status', 'is_ordered']
-    search_fields = ['order_number', 'first_name', 'last_name', 'phone', 'email']
+    list_filter = ["status", "is_ordered"]
+    search_fields = ["order_number", "first_name", "last_name", "phone", "email"]
     list_per_page = 20
     inlines = [OrderProductInline]
-    actions = ['capture_paypal']   # <-- admin action appears in dropdown
+    actions = ["capture_paypal"]
 
-    # ACTION: Capture PayPal Authorizations
     def capture_paypal(self, request, queryset):
         captured = 0
         for order in queryset:
-            if order.status == "AUTHORIZED" and order.paypal_authorization_id:
+            if order.status == "AUTHORIZED" and getattr(order, "paypal_authorization_id", None):
                 try:
                     capture = capture_paypal_payment(
                         order.paypal_authorization_id,
                         order.order_total
                     )
 
-                    if capture.get("status") == "COMPLETED":
-                        # Update Payment
-                        order.payment.status = "COMPLETED"
-                        order.payment.transaction_id = capture["id"]  # capture ID
+                    status = capture.get("status")
+                    reason = capture.get("status_details", {}).get("reason", "N/A")
+                    capture_id = capture.get("id")
+
+                    # Always update Payment with the capture attempt
+                    if order.payment:
+                        order.payment.payment_id = capture_id or order.payment.payment_id
+                        order.payment.status = status
                         order.payment.amount_paid = order.order_total
                         order.payment.save()
 
-                        # Update Order
+                    # COMPLETED → finalize order
+                    if status == "COMPLETED":
                         order.status = "COMPLETED"
                         order.is_ordered = True
                         order.save()
 
-                        # Update OrderProducts
                         for op in order.orderproduct_set.all():
                             op.ordered = True
                             op.save()
 
                         captured += 1
+                        self.message_user(
+                            request,
+                            f"Order {order.order_number} captured successfully! "
+                            f"Capture ID: {capture_id}",
+                            level=messages.SUCCESS
+                        )
+
+                    # PENDING → update order status to PENDING
+                    elif status == "PENDING":
+                        order.status = "PENDING"
+                        order.save()
+
+                        self.message_user(
+                            request,
+                            f"Capture for order {order.order_number} is pending. "
+                            f"Reason: {reason}. Capture ID: {capture_id}",
+                            level=messages.WARNING
+                        )
+
                     else:
                         self.message_user(
                             request,
-                            f"Capture for order {order.order_number} did not complete. "
-                            f"Status: {capture.get('status')}",
+                            f"Capture for order {order.order_number} returned status {status}. "
+                            f"Reason: {reason}.",
                             level=messages.ERROR
                         )
+
                 except Exception as e:
                     self.message_user(
                         request,
@@ -143,6 +166,15 @@ class OrderProductAdmin(admin.ModelAdmin):
         if obj.order and obj.order.payment:
             obj.payment = obj.order.payment
         super().save_model(request, obj, form, change)
+
+
+@admin.register(PayPalWebhookLog)
+class PayPalWebhookLogAdmin(admin.ModelAdmin):
+    list_display = ("event_type", "received_at")
+    list_filter = ("event_type",)
+    search_fields = ("event_type", "payload")
+    readonly_fields = ("event_type", "payload", "received_at")
+    ordering = ("-received_at",)
 
 
 admin.site.register(Payment)

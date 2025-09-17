@@ -8,4 +8,5 @@ urlpatterns = [
     # PayPal return/cancel endpoints
     path("paypal-return/", views.paypal_return, name="paypal_return"),
     path("paypal-cancel/", views.paypal_cancel, name="paypal_cancel"),
+    path("webhooks/paypal/", views.paypal_webhook, name="paypal_webhook"),
 ]

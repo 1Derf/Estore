@@ -21,6 +21,7 @@ class Order(models.Model):
         ("NEW", "New"),
         ("ACCEPTED", "Accepted"),
         ("AUTHORIZED", "Authorized"),
+        ("PENDING", "Pending"),
         ("COMPLETED", "Completed"),
         ("CANCELLED", "Cancelled"),
     )
@@ -64,7 +65,7 @@ class Order(models.Model):
     shipping_city = models.CharField(max_length=50, blank=True)
     shipping_zip_code = models.CharField(max_length=20, blank=True)
 
-    # NEW: store PayPal authorization ID
+    #  store PayPal authorization ID
     paypal_authorization_id = models.CharField(max_length=255, blank=True, null=True)
 
     def full_name(self):
@@ -94,3 +95,13 @@ class OrderProduct(models.Model):
 
     def __str__(self):
         return self.product.product_name
+
+
+
+class PayPalWebhookLog(models.Model):
+    event_type = models.CharField(max_length=100)
+    payload = models.JSONField()
+    received_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.event_type} at {self.received_at}"

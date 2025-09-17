@@ -1,16 +1,20 @@
 from django.shortcuts import render, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import OrderForm
 from carts.models import Cart, CartItem
-from .models import Order, OrderProduct, Payment
-import datetime, sys, json
+from .models import Order, OrderProduct, Payment, PayPalWebhookLog
+import datetime, json, logging
 from decimal import Decimal
 from carts.utils import _cart_id
 from .paypal_utils import create_paypal_order, get_paypal_order, authorize_paypal_order
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
+
+logger = logging.getLogger(__name__)
+
 
 
 def payments(request):
@@ -241,3 +245,48 @@ def paypal_cancel(request):
         return redirect("cart")
     except Exception as e:
         return HttpResponse("Error: " + str(e))
+
+
+@csrf_exempt
+def paypal_webhook(request):
+    if request.method != "POST":
+        return HttpResponseBadRequest("Invalid method")
+
+    try:
+        event = json.loads(request.body)
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("Invalid JSON")
+
+    logger.info("PayPal webhook received: %s", event)
+
+    # save raw event in DB
+    PayPalWebhookLog.objects.create(
+        event_type=event.get("event_type", "UNKNOWN"),
+        payload=event,
+    )
+
+    event_type = event.get("event_type")
+    resource = event.get("resource", {})
+
+    if event_type == "PAYMENT.CAPTURE.COMPLETED":
+        capture_id = resource.get("id")
+        status = resource.get("status")
+
+        if status == "COMPLETED" and capture_id:
+            try:
+                payment = Payment.objects.get(payment_id=capture_id)
+                payment.status = "COMPLETED"
+                payment.save()
+
+                if payment.order:
+                    order = payment.order
+                    order.status = "COMPLETED"
+                    order.is_ordered = True
+                    order.save()
+            except Payment.DoesNotExist:
+                pass
+
+    return HttpResponse("OK")
+
+#TODO we will need to change payment.order to add signature verification with headers Paypal sends
+#TODO also need to complete the webhook on Paypal when it goes live (need domain first)
