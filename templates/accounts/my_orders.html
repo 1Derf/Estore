@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<section class="section-conten padding-y bg">
+<section class="section-content padding-y bg">
 
 {% include 'includes/alerts.html' %}
 <div class="container">
@@ -32,7 +32,7 @@
       <th scope="row"><a href="{% url 'order_detail' order.order_number  %}">{{ order.order_number }}</a></th>
       <td>{{ order.full_name }}</td>
       <td>{{ order.phone }}</td>
-      <td>${{ order.order_total }}</td>
+      <td>${{ order.order_total|floatformat:2 }}</td>
 	  <td>{{ order.created_at }}</td>
 
     </tr>
@@ -45,7 +45,7 @@
 			</div>
 
 			</div> <!-- row.// -->
-		</div> <!-- card-body .// -->
+		 <!-- card-body .// -->
 
 		</article> <!-- order-group.// -->
 	</main>

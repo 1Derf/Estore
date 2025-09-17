@@ -43,13 +43,21 @@ class OrderProductForm(forms.ModelForm):
 class OrderAdmin(admin.ModelAdmin):
     list_display = [
         "order_number", "full_name", "phone", "email", "city",
-        "order_total", "tax", "status", "is_ordered", "created_at"
+        "formatted_order_total", "formatted_tax", "status", "is_ordered", "created_at"
     ]
     list_filter = ["status", "is_ordered"]
     search_fields = ["order_number", "first_name", "last_name", "phone", "email"]
     list_per_page = 20
     inlines = [OrderProductInline]
     actions = ["capture_paypal"]
+
+    def formatted_order_total(self, obj):
+        return f"{obj.order_total:.2f}"
+    formatted_order_total.short_description = "Total"
+
+    def formatted_tax(self, obj):
+        return f"{obj.tax:.2f}"
+    formatted_tax.short_description = "Tax"
 
     def capture_paypal(self, request, queryset):
         captured = 0

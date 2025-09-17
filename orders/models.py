@@ -3,6 +3,7 @@ from accounts.models import Account
 from store.models import Product, Variation
 
 
+
 class Payment(models.Model):
     user = models.ForeignKey(Account, on_delete=models.CASCADE)
     payment_id = models.CharField(max_length=100)
@@ -15,8 +16,8 @@ class Payment(models.Model):
     def __str__(self):
         return self.payment_id
 
-
 class Order(models.Model):
+
     STATUS = (
         ("NEW", "New"),
         ("ACCEPTED", "Accepted"),
