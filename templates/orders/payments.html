@@ -124,18 +124,22 @@
                 </table>
 
                 <!-- Totals -->
-                <div class="totals-box" style="float: right; text-align: right; width: 30%; margin-top: 20px;">
+                <div class="totals-box" style="float: right; text-align: right; width: 45%; margin-top: 20px;">
                     <dl class="dlist-align">
-                        <dt>Total price:</dt>
-                        <dd>${{ total|floatformat:2 }}</dd>
+                        <dt>Subtotal:</dt>
+                        <dd>${{ total }}</dd>
                     </dl>
                     <dl class="dlist-align">
                         <dt>Tax:</dt>
-                        <dd>${{ tax|floatformat:2 }}</dd>
+                        <dd>${{ tax }}</dd>
                     </dl>
                     <dl class="dlist-align">
-                        <dt>Grand Total:</dt>
-                        <dd class="text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>
+                        <dt>Shipping:</dt>
+                        <dd style="white-space: nowrap;">{{ shipping_method }} ${{ shipping_cost }}</dd>
+                    </dl>
+                    <dl class="dlist-align">
+                        <dt><strong>Grand Total:</strong></dt>
+                        <dd class="text-dark b"><strong>${{ grand_total }}</strong></dd>
                     </dl>
                 </div>
                 <div style="clear: both;"></div>

@@ -49,8 +49,12 @@
                                                 <td>{{ item.product.product_name }}
                                                     <p class="text-muted small">
                                                         {% if item.variations.all %}
-                                                            {% for i in item.variations.all %}
-                                                                {{ i.variation_category | capfirst }}: {{ i.variation_value | capfirst }}<br>
+                                                            {% for var in item.variations.all %}
+                                                                {{ var.category.name }} : {{ var.name }}
+                                                                {% if var.price_modifier and var.price_modifier > 0 %}
+                                                                    (+${{ var.price_modifier }})
+                                                                {% endif %}
+                                                                <br>
                                                             {% endfor %}
                                                         {% endif %}
                                                         <small class="text-muted">$ {{ item.product.price|floatformat:2 }} each</small>
@@ -61,7 +65,7 @@
                                             </tr>
                                         {% endfor %}
                                         </tbody>
-                                        <tfoot>
+                                       <tfoot>
                                             <tr>
                                                 <th colspan="2" class="text-right">Sub Total:</th>
                                                 <th class="text-center">$ {{ subtotal|floatformat:2 }} USD</th>
@@ -69,6 +73,12 @@
                                             <tr>
                                                 <th colspan="2" class="text-right">Tax:</th>
                                                 <th class="text-center">$ {{ order.tax|floatformat:2 }} USD</th>
+                                            </tr>
+                                            <tr>
+                                                <th colspan="2" class="text-right">
+                                                    Shipping{% if order.shipping_method %} ({{ order.shipping_method }}){% endif %}:
+                                                </th>
+                                                <th class="text-center">$ {{ order.shipping_cost|floatformat:2 }} USD</th>
                                             </tr>
                                             <tr>
                                                 <th colspan="2" class="text-right">Grand Total:</th>

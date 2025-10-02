@@ -83,34 +83,212 @@
                                 {% endfor %}
                             </tbody>
                         </table>
-                    </div>
-                </aside>
+                        <!-- INSERT THE FORM HERE, AFTER </table> BUT BEFORE </div> FOR CARD -->
+                        <h4 class="card-title mb-4">Billing Address</h4>
+                        <form method="POST" class="p-4">
+                            {% csrf_token %}
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.first_name.label_tag }}
+                                    {{ form.first_name }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.last_name.label_tag }}
+                                    {{ form.last_name }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.email.label_tag }}
+                                    {{ form.email }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.phone.label_tag }}
+                                    {{ form.phone }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.address_line_1.label_tag }}
+                                    {{ form.address_line_1 }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.address_line_2.label_tag }}
+                                    {{ form.address_line_2 }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.city.label_tag }}
+                                    {{ form.city }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.state.label_tag }}
+                                    {{ form.state }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.country.label_tag }}
+                                    {{ form.country }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.zip_code.label_tag }}
+                                    {{ form.zip_code }}
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                {{ form.order_note.label_tag }}
+                                {{ form.order_note }}
+                            </div>
+                            <h4 class="card-title mb-4 mt-5">Shipping Address</h4>
+                            <div class="form-group">
+                                <input type="checkbox" id="sameAsBilling">
+                                <label for="sameAsBilling">Shipping address is the same as billing</label>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.shipping_first_name.label_tag }}
+                                    {{ form.shipping_first_name }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.shipping_last_name.label_tag }}
+                                    {{ form.shipping_last_name }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.shipping_email.label_tag }}
+                                    {{ form.shipping_email }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.shipping_phone.label_tag }}
+                                    {{ form.shipping_phone }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.shipping_address_line_1.label_tag }}
+                                    {{ form.shipping_address_line_1 }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.shipping_address_line_2.label_tag }}
+                                    {{ form.shipping_address_line_2 }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.shipping_city.label_tag }}
+                                    {{ form.shipping_city }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.shipping_state.label_tag }}
+                                    {{ form.shipping_state }}
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="col form-group">
+                                    {{ form.shipping_country.label_tag }}
+                                    {{ form.shipping_country }}
+                                </div>
+                                <div class="col form-group">
+                                    {{ form.shipping_zip_code.label_tag }}
+                                    {{ form.shipping_zip_code }}
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-block">Save and Proceed to Checkout</button>
+                        </form>
+
+
+                        <!-- END OF ADDED FORM -->
+                    </div>  <!-- card.// -->
+                </aside>  <!-- col.// -->
                 <aside class="col-lg-3">
-                    <div class="card">
-                        <div class="card-body">
-                            <dl class="dlist-align">
-                                <dt>Total price:</dt>
-                                <dd class="text-right">${{ total|floatformat:2 }}</dd>
-                            </dl>
-                            <dl class="dlist-align">
-                                <dt>Tax:</dt>
-                                <dd class="text-right">${{ tax|floatformat:2 }}</dd>
-                            </dl>
-                            <dl class="dlist-align">
-                                <dt>Grand Total:</dt>
-                                <dd class="text-right text-dark b"><strong>${{ grand_total|floatformat:2 }}</strong></dd>
-                            </dl>
-                            <hr>
-                            <p class="text-center mb-3">
-                                <img src="{% static './images/misc/payments.png' %}" height="26">
-                            </p>
-                            <a href="{% url 'checkout' %}" class="btn btn-primary btn-block"> Checkout </a>
-                            <a href="{% url 'store:store' %}" class="btn btn-light btn-block">Continue Shopping</a>
-                        </div>
-                    </div>
+                    <!-- ... existing summary ... -->
                 </aside>
-            </div>
+            </div>  <!-- row.// -->
         {% endif %}
-    </div>
+    </div>  <!-- container.// -->
 </section>
+{% endblock %}
+{% block scripts %}
+<script>
+function copyBillingToShipping() {
+    var checkbox = document.getElementById('sameAsBilling');
+    var fields = [
+        {billing: 'id_first_name', shipping: 'id_shipping_first_name'},
+        {billing: 'id_last_name', shipping: 'id_shipping_last_name'},
+        {billing: 'id_email', shipping: 'id_shipping_email'},
+        {billing: 'id_phone', shipping: 'id_shipping_phone'},
+        {billing: 'id_address_line_1', shipping: 'id_shipping_address_line_1'},
+        {billing: 'id_address_line_2', shipping: 'id_shipping_address_line_2'},
+        {billing: 'id_city', shipping: 'id_shipping_city'},
+        {billing: 'id_state', shipping: 'id_shipping_state'},
+        {billing: 'id_country', shipping: 'id_shipping_country'},
+        {billing: 'id_zip_code', shipping: 'id_shipping_zip_code'}
+    ];
+    fields.forEach(function(field) {
+        var billingElem = document.getElementById(field.billing);
+        var shippingElem = document.getElementById(field.shipping);
+        if (billingElem && shippingElem) {
+            if (checkbox && checkbox.checked) {
+                shippingElem.value = billingElem.value || '';
+            } else {
+                shippingElem.value = '';  // Clear when unchecked
+            }
+        }
+    });
+}
+function formatPhone(input) {
+    let value = input.value.replace(/\D/g, '');
+    if (value.length > 10) value = value.substring(0, 10);
+    if (value.length > 3 && value.length <= 6) {
+        value = value.substring(0, 3) + '-' + value.substring(3);
+    } else if (value.length > 6) {
+        value = value.substring(0, 3) + '-' + value.substring(3, 6) + '-' + value.substring(6);
+    }
+    input.value = value;
+}
+function capitalizeInput(input) {
+    input.value = input.value.replace(/\b\w/g, function(txt) {
+        return txt.toUpperCase();
+    });
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var checkbox = document.getElementById('sameAsBilling');
+    if (checkbox) {
+        checkbox.addEventListener('change', copyBillingToShipping);
+    }
+    var billingIds = ['id_first_name', 'id_last_name', 'id_email', 'id_phone', 'id_address_line_1', 'id_address_line_2', 'id_city', 'id_state', 'id_country', 'id_zip_code'];
+    billingIds.forEach(function(id) {
+        var elem = document.getElementById(id);
+        if (elem) {
+            elem.addEventListener('input', function() {
+                if (document.getElementById('sameAsBilling').checked) {
+                    copyBillingToShipping();
+                }
+            });
+        }
+    });
+    var capitalizeFields = ['id_city', 'id_shipping_city', 'id_first_name', 'id_last_name', 'id_shipping_first_name', 'id_shipping_last_name'];
+    capitalizeFields.forEach(function(id) {
+        var elem = document.getElementById(id);
+        if (elem) {
+            elem.addEventListener('blur', function() {
+                capitalizeInput(this);
+            });
+        }
+    });
+    var phoneFields = ['id_phone', 'id_shipping_phone'];
+    phoneFields.forEach(function(id) {
+        var elem = document.getElementById(id);
+        if (elem) {
+            elem.addEventListener('input', function() {
+                formatPhone(this);
+            });
+        }
+    });
+    copyBillingToShipping();  // Run on load if checkbox is already checked
+});
+</script>
 {% endblock %}

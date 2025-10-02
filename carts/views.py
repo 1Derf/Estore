@@ -1,6 +1,6 @@
 from django.core.exceptions import ObjectDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
-
+from orders.shipping.easypost_client import create_shipment_from_order
 from accounts.models import UserProfile
 from store.models import Product, Variation, VariationCategory, Wishlist
 from .models import CartItem, Cart
@@ -9,8 +9,9 @@ from carts.utils import _cart_id
 from django.http import JsonResponse
 from django.contrib import messages
 from decimal import Decimal
-
-
+from orders.models import Order
+from orders.forms import OrderForm
+from orders.shipping.easypost_client import create_shipment_from_order   # 🆕 EasyPost helper
 # --------------------------
 # Helpers
 # --------------------------
@@ -226,15 +227,44 @@ def cart(request, total=0, quantity=0, cart_items=None):
     except ObjectDoesNotExist:
         pass
 
+    # Add form handling
+    initial_data = {}
+    if request.user.is_authenticated:
+        try:
+            userprofile = UserProfile.objects.get(user=request.user)
+            initial_data = {
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'email': request.user.email,
+                'phone': getattr(userprofile, 'phone_number', '') or getattr(request.user, 'phone_number', ''),
+                'address_line_1': userprofile.address_line_1,
+                'address_line_2': userprofile.address_line_2,
+                'city': userprofile.city,
+                'state': userprofile.state,
+                'country': userprofile.country,
+                'zip_code': userprofile.zip_code,
+                # Shipping initial as blank or copy if needed
+            }
+        except ObjectDoesNotExist:
+            pass
+
+    form = OrderForm(request.POST or None, initial=initial_data or request.session.get('billing_data', {}))
+    if request.method == "POST":
+        if form.is_valid():
+            request.session['billing_data'] = form.cleaned_data  # Save to session
+            return redirect("checkout")
+        # Else, form errors will show in template
+
     context = {
         "total": total,
         "quantity": quantity,
         "cart_items": cart_items,
         "tax": tax,
         "grand_total": grand_total,
+        "form": form,  # Added for the form
     }
-    return render(request, "store/cart.html", context)
-
+    print(form['state'])  # Print the rendered select to terminal
+    return render(request, "store/cart.html", context)  # Note: your template is "store/cart.html"; adjust if wrong
 
 @login_required(login_url="login")
 def checkout(request, total=0, quantity=0, cart_items=None):
@@ -242,23 +272,47 @@ def checkout(request, total=0, quantity=0, cart_items=None):
         tax = Decimal("0.00")
         grand_total = Decimal("0.00")
         userprofile = None
+
         if request.user.is_authenticated:
             cart_items = CartItem.objects.filter(user=request.user, is_active=True)
             userprofile = get_object_or_404(UserProfile, user=request.user)
         else:
             cart = Cart.objects.get(cart_id=_cart_id(request))
             cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+
+        # calculate subtotal + tax
         total, tax, grand_total, quantity = _calculate_cart_totals(cart_items)
+
+        # 🆕 EasyPost shipment preview (rates instead of 1 method)
+        # NOTE: this example assumes your UserProfile or checkout form
+        # has a shipping address available for EasyPost.
+        # If not, we’ll adjust in the next step.
+        shipment = None
+        rates = []
+        try:
+            # We build a "temp order" so EasyPost can calculate shipping.
+            temp_order = Order(user=request.user, order_total=grand_total)
+            shipment = create_shipment_from_order(temp_order)
+            rates = shipment.rates if shipment else []
+        except Exception as e:
+            print("EasyPost error:", e)
+            rates = []
+
+        # 🆕 For now, don’t add shipping until a rate is chosen
+        order_total = (total + tax).quantize(Decimal("0.01"))
+
     except ObjectDoesNotExist:
-        pass
+        rates, order_total = [], Decimal("0.00")
 
     context = {
         "total": total,
         "quantity": quantity,
         "cart_items": cart_items,
         "tax": tax,
-        "grand_total": grand_total,
+        "grand_total": grand_total,     # subtotal + tax (old style)
+        "order_total": order_total,     # subtotal + tax (+ shipping later)
         "userprofile": userprofile,
         "user": request.user if request.user.is_authenticated else None,
+        "rates": rates,                 # 🆕 multiple options from EasyPost
     }
     return render(request, "store/checkout.html", context)

@@ -34,6 +34,26 @@ class CartItem(models.Model):
         extra = sum(v.price_modifier for v in self.variations.all())
         return (base_price + extra) * self.quantity
 
+    def get_shipping_parcels(self):
+        """
+        Build shipping parcels for this cart item.
+        Returns a list of dicts like:
+        [
+          {"length": 10, "width": 5, "height": 3, "weight": 8},
+          ...
+        ]
+        One parcel per quantity.
+        """
+        parcels = []
+        for _ in range(self.quantity):
+            parcels.append({
+                "length": self.product.length_in or 1,
+                "width": self.product.width_in or 1,
+                "height": self.product.height_in or 1,
+                "weight": (self.product.weight_lbs or 1) * 16,  # convert to ounces
+            })
+        return parcels
+
     def __unicode__(self):
         return self.product.product_name
 

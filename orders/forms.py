@@ -65,28 +65,110 @@ class OrderForm(forms.ModelForm):
             'first_name', 'last_name', 'phone', 'email', 'address_line_1',
             'address_line_2', 'city', 'state', 'country',
             'zip_code', 'order_note',
-            #  Shipping fields
             'shipping_first_name', 'shipping_last_name', 'shipping_phone', 'shipping_email',
-            'shipping_address_line_1', 'shipping_address_line_2', 'shipping_country',
-            'shipping_state', 'shipping_city', 'shipping_zip_code',
+            'shipping_address_line_1', 'shipping_address_line_2', 'shipping_city', 'shipping_state',
+            'shipping_country', 'shipping_zip_code',
         ]
+        widgets = {
+           # 'first_name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            #'last_name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+           # 'email': forms.EmailInput(attrs={'class': 'form-control', 'required': True}),
+           # 'phone': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'maxlength': '12'}),
+            'address_line_1': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'address_line_2': forms.TextInput(attrs={'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'state': forms.Select(attrs={'class': 'form-control'}),
+            'country': forms.Select(attrs={'class': 'form-control'}),
+            'zip_code': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'order_note': forms.Textarea(attrs={'class': 'form-control', 'rows': '2'}),
+            'shipping_first_name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'shipping_last_name': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+           # 'shipping_email': forms.EmailInput(attrs={'class': 'form-control', 'required': True}),
+          #  'shipping_phone': forms.TextInput(attrs={'class': 'form-control', 'required': True, 'maxlength': '12'}),
+            'shipping_address_line_1': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'shipping_address_line_2': forms.TextInput(attrs={'class': 'form-control'}),
+            'shipping_city': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
+            'shipping_state': forms.Select(attrs={'class': 'form-control'}),
+            'shipping_country': forms.Select(attrs={'class': 'form-control'}),
+            'shipping_zip_code': forms.TextInput(attrs={'class': 'form-control', 'required': True}),
 
-    # Override country to use dropdown with choices, preset to US
+            # ... your existing ...
+            'first_name': forms.TextInput(
+                attrs={'class': 'form-control', 'required': True, 'autocomplete': 'given-name'}),
+            'last_name': forms.TextInput(
+                attrs={'class': 'form-control', 'required': True, 'autocomplete': 'family-name'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'required': True, 'autocomplete': 'email'}),
+            'phone': forms.TextInput(
+                attrs={'class': 'form-control', 'required': True, 'maxlength': '12', 'autocomplete': 'tel'}),
+            'shipping_email': forms.EmailInput(
+                attrs={'class': 'form-control', 'required': True, 'autocomplete': 'email'}),
+            'shipping_phone': forms.TextInput(
+                attrs={'class': 'form-control', 'required': True, 'maxlength': '12', 'autocomplete': 'tel'}),
+            # Add for other fields if needed, e.g., 'zip_code': ... 'autocomplete': 'postal-code'
+        }
+
+    state = forms.ChoiceField(
+        choices=[('', 'Select State')] + STATE_CHOICES,
+        label="State",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    shipping_state = forms.ChoiceField(
+        choices=[('', 'Select State')] + STATE_CHOICES,
+        label="Shipping State",
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
     country = forms.ChoiceField(
         choices=COUNTRY_CHOICES,
         initial='US',
         label='Country',
-        help_text='Select your country (US only at this time)'
+        help_text='Select your country (US only at this time)',
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
 
-    # Override shipping_country to use dropdown with choices, preset to US, optional
     shipping_country = forms.ChoiceField(
         choices=COUNTRY_CHOICES,
         initial='US',
         label='Shipping Country',
-        required=False,  # Optional; can fallback to billing country
-        help_text='Select shipping country (defaults to billing if blank)'
+        required=False,
+        help_text='Select shipping country (defaults to billing if blank)',
+        widget=forms.Select(attrs={'class': 'form-control'})
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Assign STATE_CHOICES to state fields
+        state_choices = [('', 'Select State')] + STATE_CHOICES
+        self.fields['state'].choices = state_choices
+        self.fields['shipping_state'].choices = state_choices
+        # Assign COUNTRY_CHOICES
+        self.fields['country'].choices = COUNTRY_CHOICES
+        self.fields['shipping_country'].choices = COUNTRY_CHOICES
+        # Override labels to match HTML
+        self.fields['first_name'].label = "First Name"
+        self.fields['last_name'].label = "Last Name"
+        self.fields['phone'].label = "Phone Number"
+        self.fields['email'].label = "Email"
+        self.fields['address_line_1'].label = "Address Line 1"
+        self.fields['address_line_2'].label = "Address Line 2"
+        self.fields['city'].label = "City"
+        self.fields['state'].label = "State"
+        self.fields['country'].label = "Country"
+        self.fields['zip_code'].label = "Zip Code"
+        self.fields['order_note'].label = "Order Note"
+        self.fields['shipping_first_name'].label = "First Name"
+        self.fields['shipping_last_name'].label = "Last Name"
+        self.fields['shipping_phone'].label = "Phone Number"
+        self.fields['shipping_email'].label = "Email"
+        self.fields['shipping_address_line_1'].label = "Address Line 1"
+        self.fields['shipping_address_line_2'].label = "Address Line 2"
+        self.fields['shipping_city'].label = "City"
+        self.fields['shipping_state'].label = "State"
+        self.fields['shipping_country'].label = "Country"
+        self.fields['shipping_zip_code'].label = "Zip Code"
 
  #  Clean and capitalize billing city
     def clean_city(self):

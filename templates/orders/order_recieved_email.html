@@ -20,6 +20,12 @@
 </head>
 <body>
     <div class="container">
+        <!-- Logo Block -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://www.beefeatergrillparts.com/logo.png"
+                 alt="Your Website Logo"
+                 style="max-height: 80px; width: auto;">
+        </div>
         <h2>Order Confirmation!</h2>
         <p class="text-center">Hi {{ user.first_name }},</p>
         <p class="text-center">
@@ -102,11 +108,12 @@
         </table>
 
         <!-- Totals -->
-        <div style="text-align: right; margin-bottom: 20px;">
-            <p><strong>Total Price:</strong> ${{ total|floatformat:2 }}</p>
-            <p><strong>Tax:</strong> ${{ tax|floatformat:2 }}</p>
-            <p><strong>Grand Total:</strong> ${{ grand_total|floatformat:2 }}</p>
-        </div>
+            <div style="text-align: right; margin-bottom: 20px;">
+                <p><strong>Subtotal:</strong> ${{ total|floatformat:2 }}</p>
+                <p><strong>Tax:</strong> ${{ tax|floatformat:2 }}</p>
+                <p><strong>Shipping:</strong> {{ shipping_method }} – ${{ shipping_cost|floatformat:2 }}</p>
+                <p><strong>Grand Total:</strong> ${{ grand_total|floatformat:2 }}</p>
+            </div>
 
         <!-- Payment -->
         <h3>Payment Method</h3>
@@ -121,7 +128,7 @@
             If you have any questions, contact us at support@yourstore.com.
         </p>
         <p class="text-center">Thank you for shopping with us!</p>
-        <p class="text-center text-muted" style="font-size: 12px;">&copy; Your Store Name {% now "Y" %}</p>
+        <p class="text-center text-muted" style="font-size: 12px;">&copy; Great Kart {% now "Y" %}</p>
     </div>
 </body>
 </html>

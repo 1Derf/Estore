@@ -174,6 +174,10 @@ PAYPAL_CLIENT_SECRET = config('PAYPAL_CLIENT_SECRET')
 PAYPAL_RETURN_URL = config('PAYPAL_RETURN_URL')
 PAYPAL_CANCEL_URL = config('PAYPAL_CANCEL_URL')
 
+# Easypost key
+
+EASYPOST_API_KEY = config('EASYPOST_API_KEY')
+
 if PAYPAL_API_MODE == "sandbox":
     PAYPAL_BASE_URL = "https://api-m.sandbox.paypal.com"
 else:
@@ -186,6 +190,9 @@ AXES_RESET_ON_SUCCESS = True
 AXES_LOCKOUT_TEMPLATE = 'axes/lockout.html'
 AXES_ONLY_ADMIN_SITE = False
 AXES_VERBOSE = False
+
+
+
 
 LOGGING = {
     'version': 1,

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+{% load static cart_extras %}
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Shipping Confirmation!</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 20px auto; background: #ffffff; padding: 20px; border: 1px solid #ddd; }
+        h2 { color: #28a745; text-align: center; }
+        h3 { font-size: 18px; margin-bottom: 10px; }
+        p { margin: 5px 0; }
+        .text-center { text-align: center; }
+        .text-muted { color: #6c757d; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 10px; }
+        thead { background-color: #f8f9fa; }
+        .address p { margin: 2px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Logo Block -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <img src="https://www.beefeatergrillparts.com/logo.png"
+                 alt="Your Website Logo"
+                 style="max-height: 80px; width: auto;">
+        </div>
+
+        <h2>Shipping Confirmation!</h2>
+        <p class="text-center">Hi {{ user.first_name }},</p>
+        <p class="text-center">
+            Good News! Your Order <strong>{{ order.order_number }}</strong> has Shipped!
+        </p>
+        <p class="text-center text-muted">Your order Shipping Details and order summary.</p>
+
+        <!-- Addresses -->
+        <table style="margin-bottom: 20px;">
+            <tr>
+                <td width="50%" valign="top" style="border: 1px solid #ddd; padding: 8px;" class="address">
+                    <h3>Billing Address</h3>
+                    <p>{{ order.full_name }}</p>
+                    <p>{{ order.full_address }}</p>
+                    <p>{{ order.city }}, {{ order.state }} {{ order.zip_code }} {{ order.country }} </p>
+                    <p>{{ order.email }}</p>
+                    <p>{{ order.phone }}</p>
+                    {% if order.order_note %}
+                        <p><strong>Order Note:</strong> {{ order.order_note }}</p>
+                    {% endif %}
+                </td>
+                <td width="50%" valign="top" style="border: 1px solid #ddd; padding: 8px;" class="address">
+                    <h3>Shipping Address</h3>
+                    {% if order.shipping_first_name %}
+                        <p>{{ order.shipping_first_name }} {{ order.shipping_last_name }}</p>
+                        <p>
+                            {{ order.shipping_address_line_1 }}
+                            {% if order.shipping_address_line_2 %}, {{ order.shipping_address_line_2 }}{% endif %}
+                        </p>
+                        <p>{{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_zip_code }} {{ order.shipping_country }}</p>
+                        <p>{{ order.shipping_email }}</p>
+                        <p>{{ order.shipping_phone }}</p>
+                    {% else %}
+                        <p>Same as billing address.</p>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+        <!-- Shipping Details -->
+        <h3>Shipping Details</h3>
+        <table style="margin-bottom: 20px; border: 1px solid #ddd;">
+            <tr>
+                <th style="text-align:left; border-bottom:1px solid #ddd;">Shipping Method</th>
+                <td style="text-align:right; border-bottom:1px solid #ddd;">
+                    {{ order.shipping_method }}
+                </td>
+            </tr>
+            <tr>
+                <th style="text-align:left;">Tracking Number</th>
+                <td style="text-align:right;">
+                    {% if order.tracking_number %}
+                        {{ order.tracking_number }}
+                    {% else %}
+                        Not yet available
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+
+        <!-- Products -->
+        <h3>Ordered Products</h3>
+        <table style="margin-bottom: 20px; border: 1px solid #ddd;">
+            <thead>
+                <tr>
+                    <th style="text-align:left; border-bottom: 1px solid #ddd;">Product</th>
+                    <th style="text-align:center; border-bottom: 1px solid #ddd;">Quantity</th>
+                    <th style="text-align:right; border-bottom: 1px solid #ddd;">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in ordered_products %}
+                <tr>
+                    <td style="border-bottom: 1px solid #ddd;">
+                        <strong>{{ item.product.product_name }}</strong>
+                        {% if item.variations.all %}
+                            <br>
+                            {% for var in item.variations.all %}
+                                {{ var.category.name }} : {{ var.name }}
+                                {% if var.price_modifier and var.price_modifier > 0 %}
+                                    (+${{ var.price_modifier }})
+                                {% endif %}
+                                <br>
+                            {% endfor %}
+                        {% endif %}
+                    </td>
+                    <td style="text-align:center; border-bottom: 1px solid #ddd;">
+                        {{ item.quantity }}
+                    </td>
+                    <td style="text-align:right; border-bottom: 1px solid #ddd;">
+                        ${{ item.sub_total|floatformat:2 }}<br>
+                        <small class="text-muted">${{ item.product_price|floatformat:2 }} each</small>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="3" style="text-align: center;">No products in this order.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+           <!-- Totals -->
+    <div style="text-align: right; margin-bottom: 20px;">
+        <p><strong>Subtotal:</strong> ${{ total }}</p>
+        <p><strong>Tax:</strong> ${{ tax }}</p>
+        <p><strong>Shipping ({{ shipping_method }}):</strong> ${{ shipping_cost }}</p>
+        <hr>
+        <p><strong>Grand Total:</strong> ${{ grand_total }}</p>
+    </div>
+
+        <!-- Payment -->
+        <h3>Payment Method</h3>
+        <table style="margin-bottom: 20px; border: 1px solid #ddd;">
+            <tr>
+                <td>{{ payment.payment_method|default:"PayPal" }}</td>
+            </tr>
+        </table>
+
+        <!-- Footer -->
+        <p class="text-center text-muted">
+            If you have any questions, contact us at support@yourstore.com.
+        </p>
+        <p class="text-center">Thank you for shopping with us!</p>
+        <p class="text-center text-muted" style="font-size: 12px;">&copy; Great Kart {% now "Y" %}</p>
+    </div>
+</body>
+</html>

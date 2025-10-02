@@ -42,7 +42,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
     resource_class = ProductResource
     list_display = (
         'product_name', 'price', 'stock', 'category', 'modified_date', 'is_available',
-        'manufacturer_part_number', 'gtin', 'upc_ean'
+        'manufacturer_part_number', 'gtin', 'upc_ean', 'weight_lbs', 'length_in', 'width_in', 'height_in',
+    )
+    list_editable = (
+        'price', 'stock', 'is_available', 'weight_lbs', 'length_in', 'width_in', 'height_in',
     )
     prepopulated_fields = {'slug': ('product_name',)}
     inlines = [ProductGalleryInline, ProductDownloadInline]
@@ -70,6 +73,10 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         ('Warranty', {
             'fields': ('warranty_text', 'warranty_file'),
         }),
+        ('Shipping', {
+            'fields': ('weight_lbs', 'length_in', 'width_in', 'height_in'),
+        }),
+
     )
 
 

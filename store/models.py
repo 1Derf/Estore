@@ -43,6 +43,41 @@ class Product(models.Model):
     has_variants = models.BooleanField(default=False, help_text="Enable if this product has variants (e.g., Gas Type).")
     warranty_text = models.TextField(blank=True, null=True, help_text="Warranty description text")
     warranty_file = models.FileField(upload_to='warranties/', blank=True, null=True, help_text="Upload warranty document (e.g., PDF)")
+    weight_lbs = models.PositiveIntegerField(
+        default=1,
+        help_text="Weight of this product in whole pounds (auto-rounded up)."
+    )
+    length_in = models.PositiveIntegerField(
+        default=7,
+        help_text="Package length in inches (whole numbers only)."
+    )
+    width_in = models.PositiveIntegerField(
+        default=6,
+        help_text="Package width in inches (whole numbers only)."
+    )
+    height_in = models.PositiveIntegerField(
+        default=6,
+        help_text="Package height in inches (whole numbers only)."
+    )
+
+    def save(self, *args, **kwargs):
+        """
+        Ensure weight is always at least 1 lb and rounded up.
+        """
+        if not self.weight_lbs or self.weight_lbs < 1:
+            self.weight_lbs = 1
+        else:
+            # Round up if somehow fractional sneaks in (future-proofing)
+            self.weight_lbs = int(self.weight_lbs + 0.9999)
+
+        # Dimensions
+        for field in ["length_in", "width_in", "height_in"]:
+            value = getattr(self, field)
+            if not value or value < 1:
+                setattr(self, field, 1)
+            else:
+                setattr(self, field, int(value + 0.9999))
+        super().save(*args, **kwargs)
 
     def get_url(self):
         return reverse('store:product_detail', args=[self.category.slug, self.slug])
