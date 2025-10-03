@@ -9,7 +9,7 @@ from carts.utils import _cart_id
 from django.http import JsonResponse
 from django.contrib import messages
 from decimal import Decimal
-from orders.models import Order
+from orders.models import SiteSettings
 from orders.forms import OrderForm
 from orders.shipping.easypost_client import create_shipment_from_order   # 🆕 EasyPost helper
 # --------------------------
@@ -214,6 +214,7 @@ def remove_cart_item(request, product_id, cart_item_id):
 # --------------------------
 # Views
 # --------------------------
+@login_required(login_url="login")
 def cart(request, total=0, quantity=0, cart_items=None):
     try:
         tax = Decimal("0.00")
@@ -227,7 +228,6 @@ def cart(request, total=0, quantity=0, cart_items=None):
     except ObjectDoesNotExist:
         pass
 
-    # Add form handling
     initial_data = {}
     if request.user.is_authenticated:
         try:
@@ -243,7 +243,6 @@ def cart(request, total=0, quantity=0, cart_items=None):
                 'state': userprofile.state,
                 'country': userprofile.country,
                 'zip_code': userprofile.zip_code,
-                # Shipping initial as blank or copy if needed
             }
         except ObjectDoesNotExist:
             pass
@@ -253,7 +252,7 @@ def cart(request, total=0, quantity=0, cart_items=None):
         if form.is_valid():
             request.session['billing_data'] = form.cleaned_data  # Save to session
             return redirect("checkout")
-        # Else, form errors will show in template
+        # Else, form errors will show in template (you can add {{ form.errors }} in cart.html if needed)
 
     context = {
         "total": total,
@@ -261,10 +260,9 @@ def cart(request, total=0, quantity=0, cart_items=None):
         "cart_items": cart_items,
         "tax": tax,
         "grand_total": grand_total,
-        "form": form,  # Added for the form
+        "form": form,
     }
-    print(form['state'])  # Print the rendered select to terminal
-    return render(request, "store/cart.html", context)  # Note: your template is "store/cart.html"; adjust if wrong
+    return render(request, "store/cart.html", context)
 
 @login_required(login_url="login")
 def checkout(request, total=0, quantity=0, cart_items=None):
@@ -283,17 +281,41 @@ def checkout(request, total=0, quantity=0, cart_items=None):
         # calculate subtotal + tax
         total, tax, grand_total, quantity = _calculate_cart_totals(cart_items)
 
-        # 🆕 EasyPost shipment preview (rates instead of 1 method)
-        # NOTE: this example assumes your UserProfile or checkout form
-        # has a shipping address available for EasyPost.
-        # If not, we’ll adjust in the next step.
-        shipment = None
+        # Fetch EasyPost rates using session billing_data
+        billing_data = request.session.get('billing_data', {})
+        if not billing_data:
+            return redirect('cart')
+
         rates = []
         try:
-            # We build a "temp order" so EasyPost can calculate shipping.
-            temp_order = Order(user=request.user, order_total=grand_total)
-            shipment = create_shipment_from_order(temp_order)
-            rates = shipment.rates if shipment else []
+            # Use create_shipment_from_cart with cart_items and billing_data
+            from orders.shipping.easypost_client import create_shipment_from_cart  # Add this import if not already
+            shipment = create_shipment_from_cart(cart_items, billing_data)
+            rates = [
+                {
+                    "id": r.id,
+                    "carrier": r.carrier,
+                    "service": r.service,
+                    "rate": r.rate,
+                }
+                for r in shipment.rates
+            ]
+
+            # Free shipping logic (using subtotal as 'total')
+            settings = SiteSettings.objects.first()
+            free_shipping_enabled = settings.free_shipping_enabled if settings else False
+            free_shipping_threshold = settings.free_shipping_threshold if settings else Decimal('99.00')
+
+            if free_shipping_enabled and total >= free_shipping_threshold:
+                rates.append({
+                    "id": "rate_free",
+                    "carrier": "Free",
+                    "service": "Shipping",
+                    "rate": "0.00",
+                })
+
+            request.session['easypost_shipment_id'] = shipment.id
+
         except Exception as e:
             print("EasyPost error:", e)
             rates = []
@@ -303,6 +325,8 @@ def checkout(request, total=0, quantity=0, cart_items=None):
 
     except ObjectDoesNotExist:
         rates, order_total = [], Decimal("0.00")
+
+    rates = sorted(rates, key=lambda r: float(r['rate']))
 
     context = {
         "total": total,
@@ -314,5 +338,12 @@ def checkout(request, total=0, quantity=0, cart_items=None):
         "userprofile": userprofile,
         "user": request.user if request.user.is_authenticated else None,
         "rates": rates,                 # 🆕 multiple options from EasyPost
+        "billing_data": billing_data,   # For the summary
     }
     return render(request, "store/checkout.html", context)
+
+
+
+
+
+

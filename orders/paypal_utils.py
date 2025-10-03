@@ -28,23 +28,28 @@ def create_paypal_order(order, amount, request):
     access_token = _get_access_token()
     url = f"{BASE_URL}/v2/checkout/orders"
 
+    shipping_data = order.get_shipping_address()
+
     payload = {
         "intent": "AUTHORIZE",
         "purchase_units": [
             {
-                "reference_id": str(order.order_number),
+                "reference_id": f"ORD-{order.id}",
                 "amount": {
                     "currency_code": "USD",
                     "value": str(amount),
                 },
                 "shipping": {
+                    "name": {
+                        "full_name": shipping_data["name"]
+                    },
                     "address": {
-                        "address_line_1": order.shipping_address_line_1 or order.address_line_1,
-                        "address_line_2": order.shipping_address_line_2 or order.address_line_2 or "",
-                        "admin_area_2": order.shipping_city or order.city,
-                        "admin_area_1": order.shipping_state or order.state,
-                        "postal_code": order.shipping_zip_code or order.zip_code,
-                        "country_code": (order.shipping_country or order.country)[:2].upper(),
+                        "address_line_1": shipping_data["street1"],
+                        "address_line_2": shipping_data["street2"] or "",
+                        "admin_area_2": shipping_data["city"],
+                        "admin_area_1": shipping_data["state"],
+                        "postal_code": shipping_data["zip"],
+                        "country_code": shipping_data["country"].upper(),
                     }
                 },
             }
@@ -55,6 +60,8 @@ def create_paypal_order(order, amount, request):
             "shipping_preference": "SET_PROVIDED_ADDRESS",
         },
     }
+
+
 
     r = requests.post(
         url,

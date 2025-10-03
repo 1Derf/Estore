@@ -1,19 +1,23 @@
-from django.shortcuts import render, redirect
+from datetime import date
+
+from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ObjectDoesNotExist
 from .forms import OrderForm
 from carts.models import Cart, CartItem
 from .models import Order, OrderProduct, Payment, PayPalWebhookLog
-import datetime, json, logging
+import json, logging
 from decimal import Decimal
 from .paypal_utils import create_paypal_order, get_paypal_order, authorize_paypal_order
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
-from carts.views import _cart_id
-from orders.shipping.easypost_client import create_shipment_from_order, get_client
+from carts.views import _cart_id, _calculate_cart_totals
+from orders.shipping.easypost_client import retrieve_shipment
+
+
 
 logger = logging.getLogger(__name__)
 
@@ -88,159 +92,132 @@ def payments(request):
 
 # Assuming _cart_id is defined elsewhere (e.g., session-based)
 
+class OrderItem:
+    pass
+
 @login_required(login_url="login")
 def place_order(request):
-    current_user = request.user
+    if request.method != 'POST':
+        return redirect('checkout')  # Only allow POST
 
-    # --- Get cart items ---
-    if current_user.is_authenticated:
-        cart_items = CartItem.objects.filter(user=current_user, is_active=True)
-    else:
-        try:
-            cart = Cart.objects.get(cart_id=_cart_id(request))
-            cart_items = CartItem.objects.filter(cart=cart, is_active=True)
-        except ObjectDoesNotExist:
-            cart_items = []
+    # Get validated billing/shipping data from session
+    billing_data = request.session.get('billing_data')
+    if not billing_data:
+        return redirect('cart')
 
-    cart_count = cart_items.count() if cart_items else 0
-    if cart_count <= 0:
-        return redirect("store")
+    # Validate form again defensively
+    form = OrderForm(data=billing_data)
+    if not form.is_valid():
+        return HttpResponseBadRequest(str(form.errors))
 
-    # --- Subtotal, tax (shipping added later) ---
-    total = Decimal("0.00")
-    quantity = 0
-    for cart_item in cart_items:
-        total += Decimal(cart_item.sub_total())
-        quantity += cart_item.quantity
-    tax = (Decimal("2") * total) / Decimal("100")
-    tax = tax.quantize(Decimal("0.01"))
-
-    if request.method == "POST":
-        form = OrderForm(request.POST)
-        if form.is_valid():
-            # --- Build and SAVE Order object (with temp totals) ---
-            data = Order()
-            data.user = current_user if current_user.is_authenticated else None
-            data.first_name = form.cleaned_data["first_name"]
-            data.last_name = form.cleaned_data["last_name"]
-            data.phone = form.cleaned_data["phone"]
-            data.email = form.cleaned_data["email"]
-            data.address_line_1 = form.cleaned_data["address_line_1"]
-            data.address_line_2 = form.cleaned_data["address_line_2"]
-            data.country = form.cleaned_data["country"]
-            data.state = form.cleaned_data["state"]
-            data.city = form.cleaned_data["city"]
-            data.zip_code = form.cleaned_data["zip_code"]
-            data.order_note = form.cleaned_data["order_note"]
-
-            # --- Shipping fields ---
-            data.shipping_first_name = form.cleaned_data["shipping_first_name"]
-            data.shipping_last_name = form.cleaned_data["shipping_last_name"]
-            data.shipping_phone = form.cleaned_data["shipping_phone"]
-            data.shipping_email = form.cleaned_data["shipping_email"]
-            data.shipping_address_line_1 = form.cleaned_data["shipping_address_line_1"]
-            data.shipping_address_line_2 = form.cleaned_data["shipping_address_line_2"]
-            data.shipping_country = form.cleaned_data["shipping_country"]
-            data.shipping_state = form.cleaned_data["shipping_state"]
-            data.shipping_city = form.cleaned_data["shipping_city"]
-            data.shipping_zip_code = form.cleaned_data["shipping_zip_code"]
-
-            # Temp totals (shipping=0 for now)
-            data.order_total = (total + tax).quantize(Decimal("0.01"))
-            data.tax = tax
-            data.ip = request.META.get("REMOTE_ADDR")
-            data.shipping_cost = Decimal("0.00")  # Temp
-            data.save()  # <<-- KEY: Save here to assign PK before relations/EasyPost
-
-            # --- Create and save OrderProducts (before EasyPost, for parcels) ---
-            for cart_item in cart_items:
-                unit_price = cart_item.product.price + sum(v.price_modifier for v in cart_item.variations.all())
-                order_product = OrderProduct(
-                    order=data,
-                    product=cart_item.product,
-                    user=current_user if current_user.is_authenticated else None,
-                    quantity=cart_item.quantity,
-                    product_price=unit_price,
-                )
-                order_product.save()  # <<-- KEY: Save each to establish relations
-                order_product.variations.set(cart_item.variations.all())
-
-            # --- EasyPost: use selected_rate_id from checkout ---
-            selected_rate_id = request.POST.get("selected_rate_id")
-            if not selected_rate_id:
-                data.delete()  # Rollback
-                return redirect("checkout")  # Or render with error message
-
-            try:
-                client = get_client()
-                shipment = create_shipment_from_order(data)  # <<-- Now safe with PK and products
-                selected_rate = next((r for r in shipment.rates if r.id == selected_rate_id), None)
-                if not selected_rate:
-                    raise ValueError(f"Selected rate {selected_rate_id} not found in available rates.")
-
-                bought_shipment = shipment.buy(rate=selected_rate)
-
-                # Update order with shipping details
-                data.shipping_cost = Decimal(bought_shipment.selected_rate.rate).quantize(Decimal("0.01"))
-                data.shipping_method = f"{bought_shipment.selected_rate.carrier} {bought_shipment.selected_rate.service}"
-                data.tracking_number = bought_shipment.tracking_code  # Optional: Save now if desired
-
-                # Recalc total with shipping
-                data.order_total = (total + tax + data.shipping_cost).quantize(Decimal("0.01"))
-                data.save()  # <<-- Resave with shipping updates
-
-            except Exception as e:
-                print("EasyPost error:", e)
-                data.delete()  # Rollback
-                return HttpResponse("Shipping failed: " + str(e))  # Or redirect with error
-
-            # --- Order number (after save, using ID) ---
-            yr = int(datetime.date.today().strftime("%Y"))
-            dt = int(datetime.date.today().strftime("%d"))
-            mt = int(datetime.date.today().strftime("%m"))
-            d = datetime.date(yr, mt, dt)
-            current_date = d.strftime("%Y%m%d")
-            order_number = current_date + str(data.id)
-            data.order_number = order_number
-            data.save()
-
-            # --- Payment placeholder ---
-            new_payment = Payment(
-                user=current_user if current_user.is_authenticated else None,
-                payment_method="PayPal",
-                amount_paid=Decimal("0.00"),
-                status="PENDING",
-            )
-            new_payment.save()
-            data.payment = new_payment
-            data.save()
-
-            # --- Redirect user to PayPal approval ---
-            try:
-                order_data = create_paypal_order(data, str(data.order_total),
-                                                 request)  # <<-- Now includes shipping in total
-                for link in order_data["links"]:
-                    if link["rel"] == "approve":
-                        return redirect(link["href"])
-                return HttpResponse("Error: No PayPal approval URL found.")
-            except Exception as e:
-                data.delete()
-                return HttpResponse("Payment creation failed: " + str(e))
-
+    # Get cart and items
+    try:
+        if request.user.is_authenticated:
+            cart_items = CartItem.objects.filter(user=request.user, is_active=True)
         else:
-            print(form.errors)  # Debug form issues in console
-            return redirect("checkout")
+            cart = get_object_or_404(Cart, cart_id=_cart_id(request))
+            cart_items = CartItem.objects.filter(cart=cart, is_active=True)
+    except:
+        return HttpResponseBadRequest("Cart not found.")
 
-    # --- Fallback for GET ---
-    context = {
-        "total": total,
-        "quantity": quantity,
-        "tax": tax,
-        "grand_total": total + tax,  # No shipping on GET
-        "cart_items": cart_items,
-        "form": OrderForm(),
-    }
-    return render(request, "store/checkout.html", context)
+    if not cart_items.exists():
+        return redirect('cart')  # Empty cart
+
+    # Calculate subtotal + tax
+    subtotal, tax, _, _ = _calculate_cart_totals(cart_items)
+
+    # Get selected rate ID from POST
+    selected_rate_id = request.POST.get('selected_rate_id')
+    if not selected_rate_id:
+        return HttpResponseBadRequest("No shipping rate selected.")
+
+    # Retrieve the EasyPost shipment
+    shipment_id = request.session.get('easypost_shipment_id')
+    if not shipment_id:
+        return HttpResponseBadRequest("No shipment found in session.")
+
+    try:
+        shipment = retrieve_shipment(shipment_id)
+        if selected_rate_id == 'rate_free':
+            shipping_cost = Decimal('0.00')
+            shipping_carrier = 'Free'
+            shipping_service = 'Shipping'
+        else:
+            selected_rate = next((r for r in shipment.rates if r.id == selected_rate_id), None)
+            if not selected_rate:
+                return HttpResponseBadRequest("Invalid shipping rate selected.")
+            shipping_cost = Decimal(selected_rate.rate)
+            shipping_carrier = selected_rate.carrier
+            shipping_service = selected_rate.service
+    except Exception as e:
+        return HttpResponseBadRequest(f"EasyPost error: {e}")
+
+    # ✅ Create the Order
+    order = form.save(commit=False)
+    order.user = request.user if request.user.is_authenticated else None
+    order.tax = tax
+    order.shipping_cost = shipping_cost
+    order.shipping_method = f"{shipping_carrier} {shipping_service}"
+    order.order_total = (subtotal + tax + shipping_cost).quantize(Decimal("0.01"))
+    order.save()
+
+    # Generate order_number using original logic
+    yr = int(date.today().strftime("%Y"))
+    dt = int(date.today().strftime("%d"))
+    mt = int(date.today().strftime("%m"))
+    d = date(yr, mt, dt)
+    current_date = d.strftime("%Y%m%d")
+    order.order_number = current_date + str(order.id)
+    order.save()
+
+    # Create Payment placeholder
+    new_payment = Payment(
+        user=order.user if order.user else None,
+        payment_method="PayPal",
+        amount_paid=Decimal("0.00"),
+        status="PENDING",
+    )
+    new_payment.save()
+    order.payment = new_payment
+    order.save()
+
+
+    for cart_item in cart_items:
+        order_product = OrderProduct.objects.create(
+            order=order,
+            payment=None,  # you can link Payment later after PayPal
+            user=request.user,
+            product=cart_item.product,
+            quantity=cart_item.quantity,
+            product_price=cart_item.product.price,  # if you want modifiers, adjust here
+            ordered=False,
+        )
+        if cart_item.variations.exists():
+            order_product.variations.set(cart_item.variations.all())
+
+    # Redirect to PayPal
+    try:
+        order_data = create_paypal_order(order, str(order.order_total), request)
+        order.paypal_order_id = order_data['id']
+        order.save()
+        for link in order_data["links"]:
+            if link["rel"] == "approve":
+                # Clear cart and session on success
+                cart_items.delete()
+
+                return redirect(link["href"])
+        return HttpResponseBadRequest("Error: No PayPal approval URL found.")
+
+    except Exception as e:
+        print("PayPal error:", e)
+        if hasattr(e, 'response') and e.response is not None:
+            try:
+                error_details = e.response.json()
+                print("PayPal error details:", error_details)
+            except ValueError:
+                print("No JSON in PayPal response.")
+        order.delete()
+        return HttpResponseBadRequest(f"Payment creation failed: {e}")
 # --------------------------
 # Paypal Return (after approval)
 # --------------------------
@@ -271,7 +248,19 @@ def paypal_return(request):
         reference_id = purchase_unit.get("reference_id")
 
         # Lookup order (must still be open)
-        order = Order.objects.get(order_number=reference_id, is_ordered=False)
+        order = Order.objects.get(paypal_order_id=order_id, is_ordered=False)
+        if order.payment is None:
+            from .models import Payment  # Assuming Payment is in the same models.py
+            payment = Payment.objects.create(
+                user=order.user,
+                payment_method="paypal",  # Or whatever default you use for PayPal
+                amount_paid=Decimal("0.00"),  # Placeholder, updated below
+                status="PENDING",  # Placeholder
+            )
+            order.payment = payment
+            order.save()
+        else:
+            payment = order.payment
 
         # Update Payment record
         payment = order.payment

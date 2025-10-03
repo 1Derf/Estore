@@ -89,6 +89,7 @@ class Order(models.Model):
 
     #  store PayPal authorization ID
     paypal_authorization_id = models.CharField(max_length=255, blank=True, null=True)
+    paypal_order_id = models.CharField(max_length=255, blank=True, null=True)
 
     def full_name(self):
         return f'{self.first_name} {self.last_name}'
@@ -179,3 +180,13 @@ class PayPalWebhookLog(models.Model):
 
     def __str__(self):
         return f"{self.event_type} at {self.received_at}"
+
+class SiteSettings(models.Model):
+    free_shipping_enabled = models.BooleanField(default=True, help_text="Enable free shipping for qualifying orders.")
+    free_shipping_threshold = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('99.00'), help_text="Minimum subtotal for free shipping.")
+
+    class Meta:
+        verbose_name_plural = "Site Settings"  # So it shows nicely in admin
+
+    def __str__(self):
+        return "Site Settings"

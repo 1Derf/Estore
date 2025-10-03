@@ -2,7 +2,7 @@ import email
 
 from django.contrib import admin, messages
 from django import forms
-from .models import Payment, Order, OrderProduct, PayPalWebhookLog
+from .models import Payment, Order, OrderProduct, PayPalWebhookLog, SiteSettings
 from .paypal_utils import capture_paypal_payment   # <-- import our helper
 from django.contrib import admin
 from django.utils.html import format_html
@@ -326,3 +326,8 @@ class PayPalWebhookLogAdmin(admin.ModelAdmin):
 admin.site.register(Payment)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(OrderProduct, OrderProductAdmin)
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    pass  # Basic admin, you can toggle/edit here

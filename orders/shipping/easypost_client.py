@@ -1,6 +1,7 @@
 from easypost import EasyPostClient
 from django.conf import settings
-
+from decimal import Decimal
+from orders.models import SiteSettings
 
 def get_client():
     """Return an EasyPost client using the Django settings API key."""
@@ -41,28 +42,23 @@ def create_shipment_from_order(order):
 
     return shipment
 
-def create_shipment_from_cart(cart_items, post_data):
-    """
-    Build an EasyPost Shipment from cart items and POST data.
-    Assumes one combined parcel for the whole cart.
-    Returns an EasyPost Shipment (with rates).
-    """
+def create_shipment_from_cart(cart_items, billing_data):
     client = get_client()
 
-    # Build to_address from POST (shipping fields)
+    # Build to_address from billing_data (your session dict)
     to_address = {
-        "name": f"{post_data.get('shipping_first_name', '')} {post_data.get('shipping_last_name', '')}",
-        "street1": post_data.get('shipping_address_line_1', ''),
-        "street2": post_data.get('shipping_address_line_2', ''),
-        "city": post_data.get('shipping_city', ''),
-        "state": post_data.get('shipping_state', ''),
-        "zip": post_data.get('shipping_zip_code', ''),
-        "country": post_data.get('shipping_country', 'US'),
-        "phone": post_data.get('shipping_phone', ''),
-        "email": post_data.get('shipping_email', ''),
+        "name": f"{billing_data.get('shipping_first_name', '')} {billing_data.get('shipping_last_name', '')}",
+        "street1": billing_data.get('shipping_address_line_1', ''),
+        "street2": billing_data.get('shipping_address_line_2', ''),
+        "city": billing_data.get('shipping_city', ''),
+        "state": billing_data.get('shipping_state', ''),
+        "zip": billing_data.get('shipping_zip_code', ''),
+        "country": billing_data.get('shipping_country', 'US'),
+        "phone": billing_data.get('shipping_phone', ''),
+        "email": billing_data.get('shipping_email', ''),
     }
 
-    # Hardcoded from_address (same as in create_shipment_from_order)
+    # Hardcoded from_address (your original)
     from_address = {
         "company": "My Store",
         "street1": "123 Warehouse Rd",
@@ -81,16 +77,13 @@ def create_shipment_from_cart(cart_items, post_data):
     max_height = 0.0
 
     for item in cart_items:
-        # Use product's dims/weight (from your models)
         item_length = item.product.length_in or 1.0
         item_width = item.product.width_in or 1.0
         item_height = item.product.height_in or 1.0
         item_weight_lbs = item.product.weight_lbs or 1.0
 
-        # Per quantity
-        total_weight_oz += item.quantity * (item_weight_lbs * 16)  # lbs to oz
+        total_weight_oz += item.quantity * (item_weight_lbs * 16)
 
-        # Take max dims across all items (not per qty, as they pack together)
         max_length = max(max_length, item_length)
         max_width = max(max_width, item_width)
         max_height = max(max_height, item_height)
@@ -99,17 +92,34 @@ def create_shipment_from_cart(cart_items, post_data):
         raise RuntimeError("No valid weight for cart items.")
 
     parcel = {
-        "length": max_length + 2,  # Padding for packing
+        "length": max_length + 2,
         "width": max_width + 2,
         "height": max_height + 2,
         "weight": total_weight_oz,
     }
 
-    # Create shipment (gets rates automatically)
+    # Calculate subtotal for free shipping check
+    subtotal = Decimal('0.00')
+    for item in cart_items:
+        # Use item.product.price (assuming it's DecimalField; if FloatField, cast Decimal(str(item.product.price)))
+        subtotal += Decimal(str(item.product.price)) * Decimal(str(item.quantity))
+
+    # Create shipment
     shipment = client.shipment.create(
         to_address=to_address,
         from_address=from_address,
         parcel=parcel,
     )
+    # Free shipping logic
+    settings = SiteSettings.objects.first()
+    free_shipping_enabled = settings.free_shipping_enabled if settings else False
+    free_shipping_threshold = settings.free_shipping_threshold if settings else Decimal('99.00')
+
+
 
     return shipment
+
+def retrieve_shipment(shipment_id: str):
+    """Retrieve an existing shipment by ID using EasyPostClient."""
+    client = get_client()
+    return client.shipment.retrieve(shipment_id)
