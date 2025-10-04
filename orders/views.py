@@ -202,8 +202,7 @@ def place_order(request):
         order.save()
         for link in order_data["links"]:
             if link["rel"] == "approve":
-                # Clear cart and session on success
-                cart_items.delete()
+
 
                 return redirect(link["href"])
         return HttpResponseBadRequest("Error: No PayPal approval URL found.")
