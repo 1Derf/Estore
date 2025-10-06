@@ -87,11 +87,11 @@ def login(request):
                     nextPage = params['next']
                     if user.is_staff and nextPage.startswith('/securelogin/'):
                         return redirect(nextPage)  # Preserve next for admin
-                    return redirect(nextPage)
+                    return redirect('/accounts/dashboard/')
             except:
                 if user.is_staff:
                     return redirect('admin:index')  # Admin dashboard
-                return redirect('accounts/dashboard')
+                return redirect('/accounts/dashboard/')
         else:
             messages.error(request, 'Invalid login credentials.')
             return redirect('login')
