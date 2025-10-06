@@ -130,7 +130,6 @@ function updatePrice() {
     const quantity = parseInt(document.getElementById('quantity-input').value) || 1;
     let total = originalBasePrice;
 
-    // Add all selected modifiers
     document.querySelectorAll('.variant-select').forEach(select => {
         const selected = select.options[select.selectedIndex];
         if (selected) {
@@ -144,13 +143,101 @@ function updatePrice() {
     const totalPrice = (total * quantity).toFixed(2);
     document.getElementById('product-price').innerText = '$' + totalPrice;
 }
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     const priceElement = document.getElementById('product-price');
     originalBasePrice = parseFloat(priceElement.innerText.replace('$', ''));
     document.querySelectorAll('.variant-select').forEach(select => {
         select.addEventListener('change', updatePrice);
     });
     document.getElementById('quantity-input').addEventListener('input', updatePrice);
+    updatePrice();
+
+    // Thumbnails click to change main image (from old)
+    const thumbnails = document.querySelectorAll('.thumb a');
+    const mainImage = document.getElementById('main-image');
+    thumbnails.forEach(thumb => {
+        thumb.addEventListener('click', function(event) {
+            event.preventDefault();
+            const newSrc = this.getAttribute('data-src');
+            const newAlt = this.getAttribute('data-alt');
+            if (mainImage && newSrc) {
+                const preloader = new Image();
+                preloader.src = newSrc;
+                preloader.onload = () => {
+                    mainImage.style.opacity = 0;
+                    setTimeout(() => {
+                        mainImage.src = preloader.src;
+                        mainImage.alt = newAlt || 'Product Image';
+                        mainImage.style.opacity = 1;
+                    }, 300);
+                };
+            }
+        });
+    });
+
+    // Zoom logic (from old)
+    const zoomContainer = document.querySelector('.zoom-container');
+    const zoomImage = document.getElementById('main-image');
+    const zoomFactor = 1.75;
+    zoomContainer.addEventListener('mouseenter', () => {
+        zoomImage.style.width = `${100 * zoomFactor}%`;
+        zoomImage.style.height = `${100 * zoomFactor}%`;
+    });
+    zoomContainer.addEventListener('mousemove', (e) => {
+        const { left, top, width, height } = zoomContainer.getBoundingClientRect();
+        let x = (e.clientX - left) / width;
+        let y = (e.clientY - top) / height;
+        x = Math.max(0.05, Math.min(0.95, x));
+        y = Math.max(0.05, Math.min(0.95, y));
+        zoomImage.style.left = `${-x * (width * (zoomFactor - 1))}px`;
+        zoomImage.style.top = `${-y * (height * (zoomFactor - 1))}px`;
+    });
+    zoomContainer.addEventListener('mouseleave', () => {
+        zoomImage.style.width = '100%';
+        zoomImage.style.height = '100%';
+        zoomImage.style.left = '0';
+        zoomImage.style.top = '0';
+    });
+
+    // AJAX for Add to Wish List (adapted from old, with variant check)
+    const wishlistBtn = document.getElementById('wishlist-btn');
+    wishlistBtn.addEventListener('click', function() {
+        const productId = this.getAttribute('data-product-id');
+        const hasVariants = this.getAttribute('data-has-variants') === 'true';
+        const formData = new FormData();
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        if (hasVariants) {
+            const selects = document.querySelectorAll('.variant-select');
+            let allSelected = true;
+            selects.forEach(select => {
+                if (select.value === '') {
+                    allSelected = false;
+                } else {
+                    formData.append(select.name, select.value);
+                }
+            });
+            if (!allSelected) {
+                document.getElementById('wishlist-error').style.display = 'block';
+                return;
+            }
+            document.getElementById('wishlist-error').style.display = 'none';
+        }
+        fetch(`/store/add_to_wishlist/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        }).then(response => response.json())
+          .then(data => {
+              alert(data.message || 'Added to wishlist!');
+              // Optional: Toggle button text if you have remove logic
+          })
+          .catch(error => {
+              alert('Error adding to wishlist: ' + error);
+          });
+    });
 });
 </script>
 {% endblock %}
