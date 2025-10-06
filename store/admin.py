@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.db import models
+from django import forms
 from .models import (
     Product, Variation, VariationCategory,
     ReviewRating, ProductGallery, ProductDownload, Brand
@@ -78,6 +80,12 @@ class ProductAdmin(ImportExportMixin, admin.ModelAdmin):
         }),
 
     )
+    formfield_overrides = {
+        models.DecimalField: {'widget': forms.NumberInput(attrs={'style': 'width: 120px;'})},
+        models.IntegerField: {'widget': forms.NumberInput(attrs={'style': 'width: 90px;'})},
+        models.FloatField: {'widget': forms.NumberInput(attrs={'style': 'width: 100px;'})},
+        models.CharField: {'widget': forms.TextInput(attrs={'style': 'width: 200px;'})},
+    }
 
 
 class VariationCategoryAdmin(admin.ModelAdmin):

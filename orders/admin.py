@@ -292,7 +292,7 @@ class OrderProductAdmin(admin.ModelAdmin):
 
     def get_order_payment_id(self, obj):
         if obj.order.payment:
-            return obj.order.payment.transaction_id or "N/A"
+            return obj.order.payment.payment_id or "N/A"
         return 'N/A'
     get_order_payment_id.short_description = 'Payment Transaction ID'
 

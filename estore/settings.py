@@ -63,8 +63,8 @@ MIDDLEWARE = [
 ]
 # Authentication URLlss
 LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/accounts/dashboard/'
-LOGOUT_REDIRECT_URL = '/custom_redirect/'
+LOGIN_REDIRECT_URL = '/securelogin/'
+LOGOUT_REDIRECT_URL = '/securelogin/login/'
 SESSION_EXPIRE_SECONDS = 7200  # For testing; change to 3600 later
 SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
