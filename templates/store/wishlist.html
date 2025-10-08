@@ -17,21 +17,23 @@
                                 {% if item.variations.all %}
                                     <p class="card-text">
                                         {% for variation in item.variations.all %}
-                                            <strong>{{ variation.get_variation_category_display }}:</strong> {{ variation.variation_value|capfirst }}
+                                            <strong>{{ variation.category.name }}:</strong> {{ variation.name|capfirst }}
                                             {% if not forloop.last %}<br>{% endif %}
                                         {% endfor %}
                                     </p>
                                 {% endif %}
                                 <a href="{{ item.product.get_url }}" class="btn btn-primary btn-sm">View Details</a>
-                                <button class="btn btn-success btn-sm add-to-cart"
-                                        data-product-id="{{ item.product.id }}"
-                                        data-quantity="{{ item.quantity }}"
-                                        data-variations='[
-                                            {% for variation in item.variations.all %}
-                                                {"variation_category": "{{ variation.variation_category|escapejs }}", "variation_value": "{{ variation.variation_value|escapejs }}"}
-                                                {% if not forloop.last %},{% endif %}
-                                            {% endfor %}
-                                        ]'>Add to Cart</button>
+                                    <button class="btn btn-success btn-sm add-to-cart"
+                                            data-product-id="{{ item.product.id }}"
+                                            data-quantity="{{ item.quantity }}"
+                                            data-variations='[
+                                                {% for variation in item.variations.all %}
+                                                    {"category": "{{ variation.category.name|escapejs }}", "value": "{{ variation.name|escapejs }}"}
+                                                    {% if not forloop.last %},{% endif %}
+                                                {% endfor %}
+                                            ]'>
+                                        Add to Cart
+                                    </button>
                                 <button class="btn btn-danger btn-sm remove-from-wishlist" data-product-id="{{ item.product.id }}">Remove</button>
                             </div>
                         </div>
@@ -46,11 +48,11 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // AJAX for Remove from Wishlist
-    const removeButtons = document.querySelectorAll('.remove-from-wishlist');
-    removeButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.getAttribute('data-product-id');
+    // --- Remove from Wishlist ---
+    document.querySelectorAll('.remove-from-wishlist').forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.dataset.productId;
+
             fetch(`/store/remove_from_wishlist/${productId}/`, {
                 method: 'POST',
                 headers: {
@@ -58,26 +60,27 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 }
-            }).then(response => response.json())
-              .then(data => {
-                  alert(data.message);
-                  location.reload();
-              });
+            })
+            .then(r => r.json())
+            .then(data => showToast(data.message))
+            .finally(() => location.reload());
         });
     });
 
-    // AJAX for Add to Cart
-    const addToCartButtons = document.querySelectorAll('.add-to-cart');
-    addToCartButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const productId = this.getAttribute('data-product-id');
-            const quantity = this.getAttribute('data-quantity') || '1';
-            const variations = JSON.parse(this.getAttribute('data-variations') || '[]');
+    // --- Add to Cart from Wishlist ---
+    document.querySelectorAll('.add-to-cart').forEach(button => {
+        button.addEventListener('click', () => {
+            const productId = button.dataset.productId;
+            const quantity  = button.dataset.quantity || '1';
+            const variations = JSON.parse(button.dataset.variations || '[]');
+
             const formData = new FormData();
             formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
             formData.append('quantity', quantity);
-            variations.forEach(variation => {
-                formData.append(variation.variation_category, variation.variation_value);
+
+            // Use correct field names
+            variations.forEach(v => {
+                formData.append(v.category, v.value);
             });
 
             fetch(`/cart/add_cart/${productId}/`, {
@@ -87,23 +90,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: formData
-            }).then(response => {
+            })
+            .then(async response => {
+                const text = await response.text();
+                let data = {};
+                try { data = JSON.parse(text); } catch {}
                 if (!response.ok) {
-                    return response.text().then(text => {
-                        throw new Error(`HTTP error! Status: ${response.status}, Response: ${text}`);
-                    });
+                    console.warn('Add to cart failed:', data.message || text);
+                    return showToast(data.message || 'Failed to add to cart.', true);
                 }
-                return response.json();
+                showToast(data.message || 'Added to cart!');
+                setTimeout(() => location.reload(), 1200);
             })
-            .then(data => {
-                alert('Added to cart!');
-                location.reload();
-            })
-            .catch(error => {
-                alert(`Failed to add to cart: ${error.message}`);
-            });
+            .catch(err => showToast('Network error: ' + err.message, true));
         });
     });
+
+    // --- Small toast helper (no alerts) ---
+    function showToast(msg, isError = false) {
+        const toast = document.createElement('div');
+        toast.textContent = msg;
+        toast.style.position = 'fixed';
+        toast.style.top = '50%';
+        toast.style.left = '50%';
+        toast.style.transform = 'translate(-50%, -50%)';
+        toast.style.background = isError ? '#dc3545' : '#198754';
+        toast.style.color = '#fff';
+        toast.style.padding = '0.5rem 1rem';
+        toast.style.borderRadius = '5px';
+        toast.style.zIndex = 9999;
+        toast.style.opacity = '0.95';
+        document.body.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+
+    }
 });
 </script>
 {% endblock %}
