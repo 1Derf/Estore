@@ -72,8 +72,8 @@ class OrderAdmin(admin.ModelAdmin):
     fieldsets = (
         (None, {
             "fields": (
-                "user", "order_number", "payment", "status", "order_status", "is_ordered",
-                "tracking_number", "order_total", "tax", "shipping_cost", "paypal_authorization_id", "ip",
+                "user", "order_number", "payment", "status","is_ordered", "order_status",
+                "tracking_number",'shipping_carrier', 'custom_carrier_details',"shipping_method", "order_total", "tax", "shipping_cost", "paypal_authorization_id", "ip",
             )
         }),
         ("Customer Info", {
@@ -90,7 +90,7 @@ class OrderAdmin(admin.ModelAdmin):
                 "shipping_first_name", "shipping_last_name", "shipping_email", "shipping_phone",
                 "shipping_address_line_1", "shipping_address_line_2",
                 "shipping_city", "shipping_state", "shipping_zip_code", "shipping_country",
-                "shipping_method", 'shipping_carrier', 'custom_carrier_details',
+
             )
         }),
         ("Supplier Info (admin only)", {
@@ -182,6 +182,9 @@ class OrderAdmin(admin.ModelAdmin):
             "shipping_cost": order.shipping_cost,
             "grand_total": order.order_total,
             "payment": order.payment,
+            "shipping_carrier": order.shipping_carrier or "N/A",
+            "custom_carrier_details": order.custom_carrier_details or "",
+            "tracking_number": order.tracking_number or "N/A",
         }
         html_message = render_to_string("orders/shipped_email.html", context)
         send_mail(
