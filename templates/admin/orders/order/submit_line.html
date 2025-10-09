@@ -1,0 +1,24 @@
+{% extends "admin/submit_line.html" %}
+{% load i18n %}
+
+{% block extra-actions %}
+  <div class="form-group" style="margin-left: 0.15rem; margin-bottom: 1rem; min-width: 180px;">
+    <!-- External controls on the div:
+         - margin-left: Controls left outside padding (0.25rem = small; increase to 0.5rem for more, 0 for none).
+         - margin-bottom: Controls bottom outside padding (1rem = space under button; increase to 1.5rem for more).
+         - min-width: Makes the whole container (and button) at least this wide to match others (measure a standard button's width via inspect and set here, e.g., 200px). -->
+    <input
+      type="submit"
+      value="{% trans 'Capture Funds' %}"
+      name="_capturefunds"
+      class="btn btn-success form-control"
+      style="padding: 0.35rem 1.15rem; min-width: 190px; background-color: #00bc8c; color: white; border-color: #6c757d;"
+    />
+    <!-- Internal controls on the button:
+         - padding: Top/bottom (0.75rem) and left/right (1.25rem) inside the button (around text; adjust for more/less space, e.g., 0.5rem 1rem for smaller).
+         - min-width: Forces button width to match others (same as div's; tweak px to exact match via browser inspect).
+         - background-color: Solid green always (#28a745 = Bootstrap success green; change to #00bc8c for Jazzmin darkly variant if too bright).
+         - color: Text color (white for contrast on green; change if needed).
+         - border-color: Border color (#28a745 to match green; set to transparent if no border wanted). -->
+  </div>
+{% endblock %}

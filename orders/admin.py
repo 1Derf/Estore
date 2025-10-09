@@ -4,12 +4,14 @@ from django.contrib import admin, messages
 from django import forms
 from .models import Payment, Order, OrderProduct, PayPalWebhookLog, SiteSettings
 from .paypal_utils import capture_paypal_payment   # <-- import our helper
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.utils.html import format_html
 from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from .models import Order
+from django.urls import path, reverse
+from django.shortcuts import redirect
 
 
 class OrderProductInline(admin.TabularInline):
@@ -57,6 +59,7 @@ class OrderProductForm(forms.ModelForm):
 
 
 class OrderAdmin(admin.ModelAdmin):
+    #change_form_template = "admin/orders/order/change_form.html"
     list_display = [
         "order_number", "full_name", "phone",
         "formatted_order_total", "payment_status_icon", "payment_status_display",
@@ -167,6 +170,12 @@ class OrderAdmin(admin.ModelAdmin):
                 obj.is_ordered = False
                 obj.save()
                 obj.orderproduct_set.update(ordered=False)
+
+        change_form_template = None  # ensure we're using default one
+
+        def render_change_form(self, request, context, *args, **kwargs):
+            context["additional_save_buttons"] = True
+            return super().render_change_form(request, context, *args, **kwargs)
 
         super().save_model(request, obj, form, change)
 
@@ -280,6 +289,108 @@ class OrderAdmin(admin.ModelAdmin):
             )
 
     capture_paypal.short_description = "Capture selected PayPal Authorizations"
+
+    # --- Custom admin view to capture funds for a single order ---
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "<int:order_id>/capture_funds/",
+                self.admin_site.admin_view(self.capture_funds_view),
+                name="orders_order_capture_funds",
+            ),
+        ]
+        return custom_urls + urls
+
+    def capture_funds_view(self, request, order_id, *args, **kwargs):
+        """
+        Handles clicking the 'Capture Funds' button on the Order detail page.
+        Reuses the same logic as capture_paypal for a single order.
+        """
+        order = Order.objects.filter(pk=order_id).first()
+        if not order:
+            self.message_user(request, "Order not found.", level=messages.ERROR)
+            return redirect("..")
+
+        # mimic what your action already does, just for one order
+        if order.status == "AUTHORIZED" and getattr(order, "paypal_authorization_id", None):
+            try:
+                capture = capture_paypal_payment(
+                    order.paypal_authorization_id,
+                    order.order_total
+                )
+
+                status = capture.get("status")
+                reason = capture.get("status_details", {}).get("reason", "N/A")
+                capture_id = capture.get("id")
+
+                if status == "COMPLETED":
+                    status = "CAPTURED"
+
+                if order.payment:
+                    order.payment.payment_id = capture_id or order.payment.payment_id
+                    order.payment.status = status
+                    order.payment.amount_paid = order.order_total
+                    order.payment.save()
+
+                if status == "CAPTURED":
+                    order.status = "CAPTURED"
+                    order.order_status = "PROCESSING"
+                    order.is_ordered = False
+                    order.save()
+
+                    for op in order.orderproduct_set.all():
+                        op.ordered = False
+                        op.save()
+
+                    self.message_user(
+                        request,
+                        f"Order {order.order_number} captured successfully! "
+                        f"Capture ID: {capture_id}",
+                        level=messages.SUCCESS
+                    )
+
+                elif status == "PENDING":
+                    order.status = "PENDING"
+                    order.save()
+                    self.message_user(
+                        request,
+                        f"Capture for order {order.order_number} is pending. "
+                        f"Reason: {reason}. Capture ID: {capture_id}",
+                        level=messages.WARNING
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        f"Capture for order {order.order_number} returned status {status}. "
+                        f"Reason: {reason}.",
+                        level=messages.ERROR
+                    )
+
+            except Exception as e:
+                self.message_user(
+                    request,
+                    f"Error capturing order {order.order_number}: {e}",
+                    level=messages.ERROR
+                )
+        else:
+            self.message_user(
+                request,
+                f"Order {order.order_number} is not eligible for capture",
+                level=messages.WARNING
+            )
+        change_url = reverse("admin:orders_order_change", args=[order.id])
+        return redirect(change_url)
+
+    def response_change(self, request, obj):
+        if "_capturefunds" in request.POST:
+            capture_url = reverse("admin:orders_order_capture_funds", args=[obj.id])
+            return redirect(capture_url)
+        return super().response_change(request, obj)
+
+
+
+
 
 
 class OrderProductAdmin(admin.ModelAdmin):
