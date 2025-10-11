@@ -16,13 +16,13 @@ def store(request, category_slug=None):
     products = None
     if category_slug is not None:
         products = Product.objects.filter(category__slug=category_slug, is_available=True)
-        paginator = Paginator(products, 12)
+        paginator = Paginator(products, 3)
         page = request.GET.get('page')
         paged_products = paginator.get_page(page)
         product_count = products.count()
     else:
         products = Product.objects.all().filter(is_available=True).order_by('id')
-        paginator = Paginator(products, 12)
+        paginator = Paginator(products, 3)
         page = request.GET.get('page')
         paged_products = paginator.get_page(page)
         product_count = products.count()
@@ -124,7 +124,7 @@ def submit_review(request, product_id):
 def brand_detail(request, brand_slug):
     brand = get_object_or_404(Brand, slug=brand_slug)
     products = Product.objects.filter(brand=brand, is_available=True).order_by('id')
-    paginator = Paginator(products, 12)
+    paginator = Paginator(products, 3)
     page = request.GET.get('page')
     paged_products = paginator.get_page(page)
     context = {'brand': brand, 'products': paged_products}
@@ -162,14 +162,16 @@ def add_to_wishlist(request, product_id):
         quantity = int(request.POST.get('quantity', 1))
         if product.has_variants:
             valid_categories = set(
-                Variation.objects.filter(product=product, is_active=True).values_list('variation_category', flat=True))
+                Variation.objects.filter(product=product, is_active=True)
+                .values_list('category__name', flat=True)
+            )
             for key, value in request.POST.items():
                 if key in valid_categories:
                     try:
                         variation = Variation.objects.get(
                             product=product,
-                            variation_category__iexact=key,
-                            variation_value__iexact=value,
+                            category__name__iexact=key,
+                            name__iexact=value,
                             is_active=True
                         )
                         product_variations.append(variation)
@@ -177,7 +179,11 @@ def add_to_wishlist(request, product_id):
                         continue
             if len(product_variations) != len(valid_categories):
                 if request.headers.get('x-requested-with') == 'XMLHttpRequest':
-                    return JsonResponse({'status': 'error', 'message': 'Please select all required variations.'}, status=400)
+                    return JsonResponse({
+                        'success': False,  # 👈 added
+                        'status': 'error',
+                        'message': 'Please select all required variations.'
+                    }, status=400)
                 messages.error(request, "Please select all required variations.")
                 return redirect('/store/wishlist/')
 
@@ -187,14 +193,14 @@ def add_to_wishlist(request, product_id):
             quantity = int(wishlist_data.get('quantity', 1))
             if product.has_variants:
                 valid_categories = set(
-                    Variation.objects.filter(product=product, is_active=True).values_list('variation_category', flat=True))
+                    Variation.objects.filter(product=product, is_active=True).values_list('category', flat=True))
                 for key, value in wishlist_data.get('variations', {}).items():
                     if key in valid_categories:
                         try:
                             variation = Variation.objects.get(
                                 product=product,
-                                variation_category__iexact=key,
-                                variation_value__iexact=value,
+                                category__name__iexact=key,
+                                name__iexact=value,
                                 is_active=True
                             )
                             product_variations.append(variation)
@@ -224,6 +230,7 @@ def add_to_wishlist(request, product_id):
         del request.session['wishlist_data']
     if request.headers.get('x-requested-with') == 'XMLHttpRequest':
         return JsonResponse({
+            'success': True,  # 👈 added
             'status': 'added',
             'message': 'Item added to wishlist!',
             'in_wishlist': True

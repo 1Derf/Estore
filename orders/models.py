@@ -56,6 +56,17 @@ class Order(models.Model):
     status = models.CharField(max_length=10,choices=STATUS,default="AUTHORIZED",verbose_name="Payment Status")
     tracking_number = models.CharField(max_length=100, blank=True, null=True,
                                        help_text="Carrier tracking number for shipment")
+    CARRIER_CHOICES = (
+        ('FedEx', 'FedEx'),
+        ('UPS', 'UPS'),
+        ('USPS', 'USPS'),
+        ('Freight', 'Freight'),
+        ('Other', 'Other'),
+    )
+    shipping_carrier = models.CharField(max_length=50, choices=CARRIER_CHOICES, blank=True, null=True,
+                                        help_text="Shipping carrier")
+    custom_carrier_details = models.CharField(max_length=255, blank=True, null=True,
+                                              help_text="Additional details for custom carriers (e.g., Freight company name and tracking URL)")
     order_status = models.CharField(max_length=15,choices=ORDER_STATUS,default="PROCESSING",)
     is_ordered = models.BooleanField(default=False)
     ip = models.CharField(blank=True, max_length=20)

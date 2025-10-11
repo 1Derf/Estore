@@ -41,43 +41,45 @@ def add_cart(request, product_id):
     if request.method == "POST":
         try:
             quantity = int(request.POST.get("quantity", 1))
-            if quantity < 1 or quantity > product.stock:
+            if quantity < 1 or quantity > (product.stock or 0):
                 msg = "Invalid quantity. Must be between 1 and available stock."
                 if request.headers.get("x-requested-with") == "XMLHttpRequest":
                     return JsonResponse({"status": "error", "message": msg}, status=400)
                 messages.error(request, msg)
-                return redirect("product_detail", category_slug=product.category.slug, product_slug=product.slug)
+                # Use the correct URL name for your detail page (likely namespaced)
+                return redirect("store:product_detail", category_slug=product.category.slug, product_slug=product.slug)
 
             # ---- variation handling ----
             product_variations = []
             if product.has_variants:
-                # required categories ONLY for this product
+                # Only consider ACTIVE variations to determine required categories
                 required_categories = (
-                    Variation.objects.filter(product=product)
+                    Variation.objects.filter(product=product, is_active=True)
                     .values_list("category__name", flat=True)
                     .distinct()
                 )
 
+                # Match posted selections to ACTIVE variations
                 for key, value in request.POST.items():
                     if key in required_categories:
-                        try:
-                            variation = Variation.objects.get(
-                                product=product,
-                                category__name__iexact=key,
-                                name__iexact=value,
-                                is_active=True,
-                            )
+                        qs = Variation.objects.filter(
+                            product=product,
+                            category__name__iexact=key.strip(),
+                            name__iexact=(value or "").strip(),
+                            is_active=True,  # ignore inactive rows
+                        ).order_by("id")
+                        variation = qs.first()  # deterministic, avoids MultipleObjectsReturned
+                        if variation:
                             product_variations.append(variation)
-                        except Variation.DoesNotExist:
-                            continue
 
+                # Ensure user selected one active variation for each required category
                 if len(product_variations) < len(required_categories):
                     msg = "Please select all required variations for this product."
                     if request.headers.get("x-requested-with") == "XMLHttpRequest":
                         return JsonResponse({"status": "error", "message": msg}, status=400)
                     messages.error(request, msg)
                     return redirect(
-                        "product_detail",
+                        "store:product_detail",
                         category_slug=product.category.slug,
                         product_slug=product.slug,
                     )

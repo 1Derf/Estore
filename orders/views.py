@@ -189,7 +189,7 @@ def place_order(request):
             user=request.user,
             product=cart_item.product,
             quantity=cart_item.quantity,
-            product_price=cart_item.product.price,  # if you want modifiers, adjust here
+            product_price = cart_item.sub_total () / cart_item.quantity,  # if you want modifiers, adjust here
             ordered=False,
         )
         if cart_item.variations.exists():

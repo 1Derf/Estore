@@ -67,24 +67,41 @@
         </table>
         <!-- Shipping Details -->
         <h3>Shipping Details</h3>
-        <table style="margin-bottom: 20px; border: 1px solid #ddd;">
-            <tr>
-                <th style="text-align:left; border-bottom:1px solid #ddd;">Shipping Method</th>
-                <td style="text-align:right; border-bottom:1px solid #ddd;">
-                    {{ order.shipping_method }}
-                </td>
-            </tr>
-            <tr>
-                <th style="text-align:left;">Tracking Number</th>
-                <td style="text-align:right;">
-                    {% if order.tracking_number %}
-                        {{ order.tracking_number }}
-                    {% else %}
-                        Not yet available
-                    {% endif %}
-                </td>
-            </tr>
-        </table>
+            <table style="margin-bottom: 20px; border: 1px solid #ddd;">
+
+                <tr>
+                    <th style="text-align:left; border-bottom:1px solid #ddd;">Shipping Carrier</th>
+                    <td style="text-align:right; border-bottom:1px solid #ddd;">
+                        {{ shipping_carrier }}
+                    </td>
+                </tr>
+                {% if custom_carrier_details %}
+                    <tr>
+                        <th style="text-align:left; border-bottom:1px solid #ddd;">Carrier Details</th>
+                        <td style="text-align:right; border-bottom:1px solid #ddd;">
+                            {{ custom_carrier_details }}
+                        </td>
+                    </tr>
+                {% endif %}
+                <tr>
+                    <th style="text-align:left;">Tracking Number</th>
+                    <td style="text-align:right;">
+                        {% if order.tracking_number %}
+                            {% if shipping_carrier == 'FedEx' %}
+                                <a href="https://www.fedex.com/apps/fedextrack/?tracknumbers={{ order.tracking_number }}" style="color: #007bff; text-decoration: none;">{{ order.tracking_number }}</a>
+                            {% elif shipping_carrier == 'UPS' %}
+                                <a href="https://www.ups.com/track?tracknum={{ order.tracking_number }}" style="color: #007bff; text-decoration: none;">{{ order.tracking_number }}</a>
+                            {% elif shipping_carrier == 'USPS' %}
+                                <a href="https://tools.usps.com/go/TrackConfirmAction?qtc_tLabels1={{ order.tracking_number }}" style="color: #007bff; text-decoration: none;">{{ order.tracking_number }}</a>
+                            {% else %}
+                                {{ order.tracking_number }}
+                            {% endif %}
+                        {% else %}
+                            Not yet available
+                        {% endif %}
+                    </td>
+                </tr>
+            </table>
 
         <!-- Products -->
         <h3>Ordered Products</h3>

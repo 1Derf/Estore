@@ -1,0 +1,4 @@
+.submit-row button[name="_capturefunds"] {
+  min-width: 801px !important; /* Adjust px to match */
+  padding-left: 200rem !important; /* Fix left padding offset */
+}

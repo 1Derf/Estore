@@ -87,11 +87,11 @@ def login(request):
                     nextPage = params['next']
                     if user.is_staff and nextPage.startswith('/securelogin/'):
                         return redirect(nextPage)  # Preserve next for admin
-                    return redirect(nextPage)
+                    return redirect('/accounts/dashboard/')
             except:
                 if user.is_staff:
                     return redirect('admin:index')  # Admin dashboard
-                return redirect('accounts/dashboard')
+                return redirect('/accounts/dashboard/')
         else:
             messages.error(request, 'Invalid login credentials.')
             return redirect('login')
@@ -284,13 +284,11 @@ def order_detail(request, order_id):
     }
     return render(request, 'accounts/order_detail.html', context)
 
-
 def custom_redirect(request):
     next_url = request.GET.get('next', '')
-    if next_url and next_url.startswith('/securelogin/'):
-        return redirect(f'{reverse("admin:login")}?next={next_url}')
-    return redirect('/accounts/login/' + (f'?next={next_url}' if next_url else ''))
-
+    if next_url:
+        return redirect(next_url)  # Redirect to the 'next' URL if provided
+    return redirect('login')  # Default to login page
 
 def lockout(request):
     return render(request, 'accounts/lockout.html', {'message': 'Too many failed login attempts. Try again later.'})

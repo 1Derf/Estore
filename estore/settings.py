@@ -63,7 +63,7 @@ MIDDLEWARE = [
 ]
 # Authentication URLlss
 LOGIN_URL = '/accounts/login/'
-LOGOUT_REDIRECT_URL = '/custom_redirect/'
+LOGOUT_REDIRECT_URL = '/securelogin/'
 SESSION_EXPIRE_SECONDS = 7200  # For testing; change to 3600 later
 SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 
@@ -78,6 +78,9 @@ AXES_COOLOFF_TIME = 0.5  # 30-minute lockout
 
 
 ROOT_URLCONF = 'estore.urls'
+
+
+
 
 TEMPLATES = [
     {
@@ -239,7 +242,8 @@ JAZZMIN_UI_TWEAKS = {
         "info": "btn-info",
         "warning": "btn-warning",
         "danger": "btn-danger",
-        "success": "btn-success"
+        "success": "btn-success",
+        "custom_css": "admin/css/custom.css",
     }
 
 }
